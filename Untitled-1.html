@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Station Agricole IoT - Architecture LoRaWAN</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            line-height: 1.6;
+            overflow-x: auto;
+        }
+
+        .presentation-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .slide {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            min-height: 600px;
+        }
+
+        h1 {
+            color: #1e3c72;
+            font-size: 2.5em;
+            text-align: center;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            color: #2196F3;
+            font-size: 2em;
+            margin-bottom: 25px;
+            border-bottom: 3px solid #2196F3;
+            padding-bottom: 10px;
+        }
+
+        h3 {
+            color: #4CAF50;
+            font-size: 1.5em;
+            margin: 20px 0 15px 0;
+        }
+
+        .architecture-diagram {
+            width: 100%;
+            height: 500px;
+            background: linear-gradient(145deg, #f8f9fa, #e9ecef);
+            border-radius: 15px;
+            margin: 20px 0;
+            position: relative;
+            border: 2px solid #dee2e6;
+            overflow: hidden;
+        }
+
+        .layer {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .presentation-layer {
+            top: 20px;
+            width: 300px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .application-layer {
+            top: 120px;
+            width: 400px;
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+        }
+
+        .network-layer {
+            top: 220px;
+            width: 350px;
+            background: linear-gradient(45deg, #FF9800, #F57C00);
+            color: white;
+        }
+
+        .physical-layer {
+            top: 320px;
+            width: 450px;
+            background: linear-gradient(45deg, #9C27B0, #673AB7);
+            color: white;
+        }
+
+        .sensor-layer {
+            top: 420px;
+            width: 500px;
+            background: linear-gradient(45deg, #2196F3, #1976D2);
+            color: white;
+        }
+
+        .component-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .component-card {
+            background: linear-gradient(145deg, #ffffff, #f8f9fa);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-left: 4px solid #2196F3;
+        }
+
+        .component-icon {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .data-flow {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 30px 0;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .flow-step {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            flex: 1;
+            text-align: center;
+            min-width: 150px;
+            font-weight: bold;
+        }
+
+        .arrow {
+            font-size: 2em;
+            color: #2196F3;
+            margin: 0 10px;
+        }
+
+        .tech-specs {
+            background: rgba(156, 39, 176, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            border-left: 4px solid #9C27B0;
+        }
+
+        .benefits-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .benefit-item {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .schema-container {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            border: 2px solid #dee2e6;
+        }
+
+        .functional-schema {
+            width: 100%;
+            height: 400px;
+            background: white;
+            border-radius: 10px;
+            position: relative;
+            border: 1px solid #ccc;
+        }
+
+        .schema-node {
+            position: absolute;
+            background: #2196F3;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .web-interface { top: 20px; left: 50px; background: #667eea; }
+        .mqtt-broker { top: 20px; right: 50px; background: #FF9800; }
+        .chirpstack { top: 150px; left: 50%; transform: translateX(-50%); background: #4CAF50; }
+        .gateway { top: 280px; left: 30%; background: #9C27B0; }
+        .nodes { top: 280px; right: 30%; background: #2196F3; }
+
+        .connection-line {
+            position: absolute;
+            background: #666;
+            height: 2px;
+        }
+
+        .performance-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .metric-card {
+            background: linear-gradient(45deg, #2196F3, #1976D2);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .navigation {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.9);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        .nav-btn {
+            display: block;
+            background: #2196F3;
+            color: white;
+            padding: 8px 15px;
+            margin: 5px 0;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 0.9em;
+        }
+
+        .nav-btn:hover {
+            background: #1976D2;
+        }
+
+        @media (max-width: 768px) {
+            .slide {
+                padding: 20px;
+                margin-bottom: 20px;
+            }
+            
+            h1 { font-size: 2em; }
+            h2 { font-size: 1.5em; }
+            
+            .component-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .data-flow {
+                flex-direction: column;
+            }
+            
+            .arrow {
+                transform: rotate(90deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="navigation">
+        <a href="#slide1" class="nav-btn">🏠 Accueil</a>
+        <a href="#slide2" class="nav-btn">🏗️ Architecture</a>
+        <a href="#slide3" class="nav-btn">🔧 Composants</a>
+        <a href="#slide4" class="nav-btn">📊 Flux de Données</a>
+        <a href="#slide5" class="nav-btn">⚙️ Technologies</a>
+        <a href="#slide6" class="nav-btn">📈 Performance</a>
+        <a href="#slide7" class="nav-btn">🎯 Avantages</a>
+    </div>
+
+    <div class="presentation-container">
+        <!-- Slide 1: Titre et Introduction -->
+        <div id="slide1" class="slide">
+            <h1>🌾 Station Agricole IoT</h1>
+            <h2 style="text-align: center; color: #4CAF50;">Architecture LoRaWAN avec ChirpStack Gateway</h2>
+            
+            <div style="text-align: center; margin: 40px 0;">
+                <div style="font-size: 4em; margin: 20px 0;">
+                    🏭 ↔️ 📡 ↔️ 🌱
+                </div>
+                <p style="font-size: 1.3em; color: #666; margin: 20px 0;">
+                    Solution complète de monitoring agricole temps réel
+                </p>
+            </div>
+
+            <div class="component-grid">
+                <div class="component-card">
+                    <div class="component-icon">🌐</div>
+                    <h3>Interface Web</h3>
+                    <p>Dashboard temps réel avec gestion JSON/Normal, graphiques interactifs et contrôles intelligents</p>
+                </div>
+                <div class="component-card">
+                    <div class="component-icon">📡</div>
+                    <h3>Gateway RAK7243</h3>
+                    <p>Passerelle LoRaWAN professionnelle avec ChirpStack pour la gestion des communications</p>
+                </div>
+                <div class="component-card">
+                    <div class="component-icon">📊</div>
+                    <h3>Capteurs RAK811</h3>
+                    <p>Modules LoRaWAN pour surveillance environnementale et contrôle des équipements</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 2: Architecture Globale -->
+        <div id="slide2" class="slide">
+            <h2>🏗️ Architecture du Système</h2>
+            
+            <div class="architecture-diagram">
+                <div class="layer presentation-layer">
+                    <div>Couche Présentation</div>
+                    <div style="font-size: 0.8em;">Interface Web + Dashboard</div>
+                </div>
+                <div class="layer application-layer">
+                    <div>Couche Application</div>
+                    <div style="font-size: 0.8em;">Node.js + MQTT + WebSocket</div>
+                </div>
+                <div class="layer network-layer">
+                    <div>Couche Réseau</div>
+                    <div style="font-size: 0.8em;">ChirpStack + Gateway RAK7243</div>
+                </div>
+                <div class="layer physical-layer">
+                    <div>Couche Physique</div>
+                    <div style="font-size: 0.8em;">LoRaWAN 868MHz</div>
+                </div>
+                <div class="layer sensor-layer">
+                    <div>Couche Capteurs</div>
+                    <div style="font-size: 0.8em;">Modules RAK811 + Capteurs</div>
+                </div>
+            </div>
+
+            <div class="tech-specs">
+                <h3>🔧 Spécifications Techniques</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+                    <div><strong>Fréquence:</strong> 868MHz (EU)</div>
+                    <div><strong>Portée:</strong> 2-15km en extérieur</div>
+                    <div><strong>Protocole:</strong> LoRaWAN 1.0.3</div>
+                    <div><strong>Consommation:</strong> Ultra-basse</div>
+                    <div><strong>Capacité:</strong> 1000+ capteurs</div>
+                    <div><strong>Temps réel:</strong> WebSocket + MQTT</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: Composants Détaillés -->
+        <div id="slide3" class="slide">
+            <h2>🔧 Composants du Système</h2>
+
+            <div class="component-grid">
+                <div class="component-card">
+                    <div class="component-icon">🌐</div>
+                    <h3>Interface Web</h3>
+                    <ul style="text-align: left; margin-top: 10px;">
+                        <li>Dashboard temps réel HTML5</li>
+                        <li>Gestion JSON/Normal configurable</li>
+                        <li>Graphiques Chart.js interactifs</li>
+                        <li>Contrôles de réservoirs intelligents</li>
+                        <li>Export Excel automatisé</li>
+                        <li>Mode responsive mobile</li>
+                    </ul>
+                </div>
+
+                <div class="component-card">
+                    <div class="component-icon">⚙️</div>
+                    <h3>Serveur Node.js</h3>
+                    <ul style="text-align: left; margin-top: 10px;">
+                        <li>Serveur Express.js</li>
+                        <li>WebSocket temps réel</li>
+                        <li>Client MQTT intégré</li>
+                        <li>JSONPath parsing intelligent</li>
+                        <li>QoS configurable par topic</li>
+                        <li>Sauvegarde automatique</li>
+                    </ul>
+                </div>
+
+                <div class="component-card">
+                    <div class="component-icon">📡</div>
+                    <h3>Gateway RAK7243</h3>
+                    <ul style="text-align: left; margin-top: 10px;">
+                        <li>Raspberry Pi 3B+ intégré</li>
+                        <li>Concentrateur LoRa 8 canaux</li>
+                        <li>ChirpStack Network Server</li>
+                        <li>Application Server intégré</li>
+                        <li>Interface WiFi/Ethernet</li>
+                        <li>GPS embarqué</li>
+                    </ul>
+                </div>
+
+                <div class="component-card">
+                    <div class="component-icon">📊</div>
+                    <h3>Modules RAK811</h3>
+                    <ul style="text-align: left; margin-top: 10px;">
+                        <li>MCU STM32L151 ultra-basse conso</li>
+                        <li>Radio LoRa SX1276</li>
+                        <li>Portée 2-15km</li>
+                        <li>Autonomie 2-10 ans</li>
+                        <li>AT Commands + API</li>
+                        <li>Capteurs I2C/SPI/ADC</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="schema-container">
+                <h3>📐 Schéma Fonctionnel</h3>
+                <div class="functional-schema">
+                    <div class="schema-node web-interface">Interface Web<br>Dashboard</div>
+                    <div class="schema-node mqtt-broker">Serveur MQTT<br>Node.js</div>
+                    <div class="schema-node chirpstack">ChirpStack<br>Network Server</div>
+                    <div class="schema-node gateway">Gateway<br>RAK7243</div>
+                    <div class="schema-node nodes">Capteurs<br>RAK811</div>
+                    
+                    <!-- Lignes de connexion -->
+                    <div class="connection-line" style="top: 45px; left: 200px; width: 300px;"></div>
+                    <div class="connection-line" style="top: 90px; left: 350px; width: 2px; height: 80px;"></div>
+                    <div class="connection-line" style="top: 200px; left: 250px; width: 200px;"></div>
+                    <div class="connection-line" style="top: 325px; left: 350px; width: 200px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: Flux de Données -->
+        <div id="slide4" class="slide">
+            <h2>📊 Flux de Données Temps Réel</h2>
+
+            <div class="data-flow">
+                <div class="flow-step">📊 Capteurs<br>RAK811</div>
+                <div class="arrow">→</div>
+                <div class="flow-step">📡 LoRaWAN<br>868MHz</div>
+                <div class="arrow">→</div>
+                <div class="flow-step">🏭 Gateway<br>RAK7243</div>
+                <div class="arrow">→</div>
+                <div class="flow-step">⚙️ ChirpStack<br>Server</div>
+                <div class="arrow">→</div>
+                <div class="flow-step">🌐 Interface<br>Web</div>
+            </div>
+
+            <div class="component-grid">
+                <div class="component-card">
+                    <h3>📤 Uplink (Remontée)</h3>
+                    <div style="font-family: monospace; background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0;">
+{<br>
+&nbsp;&nbsp;"confirmed": true,<br>
+&nbsp;&nbsp;"data": "AgAKAAgBAwADAAF0Cg==",<br>
+&nbsp;&nbsp;"fPort": 1<br>
+}
+                    </div>
+                    <p>Données des capteurs encodées en Base64 avec acquittement</p>
+                </div>
+
+                <div class="component-card">
+                    <h3>📥 Downlink (Commande)</h3>
+                    <div style="font-family: monospace; background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0;">
+{<br>
+&nbsp;&nbsp;"confirmed": false,<br>
+&nbsp;&nbsp;"data": "MQ==",<br>
+&nbsp;&nbsp;"fPort": 10<br>
+}
+                    </div>
+                    <p>Commandes vers les équipements (pompes, vannes, etc.)</p>
+                </div>
+
+                <div class="component-card">
+                    <h3>⚡ Temps Réel</h3>
+                    <div style="font-family: monospace; background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0;">
+WebSocket + MQTT<br>
+Latence: &lt; 500ms<br>
+QoS: 0, 1, 2<br>
+Topics configurables
+                    </div>
+                    <p>Mise à jour instantanée de l'interface utilisateur</p>
+                </div>
+
+                <div class="component-card">
+                    <h3>💾 Stockage</h3>
+                    <div style="font-family: monospace; background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 10px 0;">
+JSON Local<br>
+Historique: 1000 pts<br>
+Auto-sauvegarde: 30s<br>
+Export Excel
+                    </div>
+                    <p>Persistance des données et historiques graphiques</p>
+                </div>
+            </div>
+
+            <div class="tech-specs">
+                <h3>🔄 Protocoles de Communication</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-top: 15px;">
+                    <div><strong>LoRaWAN:</strong> Communication longue portée</div>
+                    <div><strong>MQTT:</strong> Messagerie temps réel</div>
+                    <div><strong>WebSocket:</strong> Interface utilisateur</div>
+                    <div><strong>HTTP/REST:</strong> API de configuration</div>
+                    <div><strong>JSON:</strong> Format de données universel</div>
+                    <div><strong>Base64:</strong> Encodage des payloads</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: Technologies Utilisées -->
+        <div id="slide5" class="slide">
+            <h2>⚙️ Stack Technologique</h2>
+
+            <div class="component-grid">
+                <div class="component-card">
+                    <div class="component-icon">🟨</div>
+                    <h3>Frontend</h3>
+                    <ul style="text-align: left;">
+                        <li>HTML5 + CSS3 moderne</li>
+                        <li>JavaScript ES6+</li>
+                        <li>Chart.js pour graphiques</li>
+                        <li>WebSocket natif</li>
+                        <li>Design responsive</li>
+                    </ul>
+                </div>
+
+                <div class="component-card">
+                    <div class="component-icon">🟢</div>
+                    <h3>Backend</h3>
+                    <ul style="text-align: left;">
+                        <li>Node.js 16+</li>
+                        <li>Express.js framework</li>
+                        <li>Socket.io temps réel</li>
+                        <li>MQTT.js client</li>
+                        <li>JSONPath parsing</li>
+                    </ul>
+                </div>
+
+                <div class="component-card">
+                    <div class="component-icon">📡</div>
+                    <h3>Communication</h3>
+                    <ul style="text-align: left;">
+                        <li>LoRaWAN 1.0.3</li>
+                        <li>ChirpStack v4</li>
+                        <li>MQTT v3.1.1</li>
+                        <li>WebSocket protocol</li>
+                        <li>RESTful API</li>
+                    </ul>
+                </div>
+
+                <div class="component-card">
+                    <div class="component-icon">🔧</div>
+                    <h3>Hardware</h3>
+                    <ul style="text-align: left;">
+                        <li>RAK7243 Gateway</li>
+                        <li>RAK811 LoRa Modules</li>
+                        <li>Raspberry Pi 3B+</li>
+                        <li>Capteurs I2C/SPI</li>
+                        <li>Antennes 868MHz</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="schema-container">
+                <h3>🔀 Diagramme des Protocoles</h3>
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; margin: 20px 0;">
+                    <div style="background: #4CAF50; color: white; padding: 15px; border-radius: 10px; text-align: center; flex: 1; min-width: 120px;">
+                        <div style="font-size: 2em;">📊</div>
+                        <div>Capteurs</div>
+                        <div style="font-size: 0.8em;">I2C/SPI/ADC</div>
+                    </div>
+                    <div style="font-size: 1.5em; color: #666;">↕️</div>
+                    <div style="background: #2196F3; color: white; padding: 15px; border-radius: 10px; text-align: center; flex: 1; min-width: 120px;">
+                        <div style="font-size: 2em;">📡</div>
+                        <div>RAK811</div>
+                        <div style="font-size: 0.8em;">LoRaWAN</div>
+                    </div>
+                    <div style="font-size: 1.5em; color: #666;">↕️</div>
+                    <div style="background: #9C27B0; color: white; padding: 15px; border-radius: 10px; text-align: center; flex: 1; min-width: 120px;">
+                        <div style="font-size: 2em;">🏭</div>
+                        <div>Gateway</div>
+                        <div style="font-size: 0.8em;">ChirpStack</div>
+                    </div>
+                    <div style="font-size: 1.5em; color: #666;">↕️</div>
+                    <div style="background: #FF9800; color: white; padding: 15px; border-radius: 10px; text-align: center; flex: 1; min-width: 120px;">
+                        <div style="font-size: 2em;">⚙️</div>
+                        <div>Serveur</div>
+                        <div style="font-size: 0.8em;">MQTT/WS</div>
+                    </div>
+                    <div style="font-size: 1.5em; color: #666;">↕️</div>
+                    <div style="background: #667eea; color: white; padding: 15px; border-radius: 10px; text-align: center; flex: 1; min-width: 120px;">
+                        <div style="font-size: 2em;">🌐</div>
+                        <div>Interface</div>
+                        <div style="font-size: 0.8em;">HTML5/JS</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: Performance et Métriques -->
+        <div id="slide6" class="slide">
+            <h2>📈 Performance et Métriques</h2>
+
+            <div class="performance-metrics">
+                <div class="metric-card">
+                    <div class="metric-value">2-15km</div>
+                    <div>Portée LoRaWAN</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">1000+</div>
+                    <div>Capteurs max</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">&lt;500ms</div>
+                    <div>Latence temps réel</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">2-10 ans</div>
+                    <div>Autonomie batterie</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">99.9%</div>
+                    <div>Disponibilité</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">AES-128</div>
+                    <div>Sécurité</div>
+                </div>
+            </div>
+
+            <div class="component-grid">
+                <div class="component-card">
+                    <h3>🚀 Optimisations LoRaWAN</h3>
+                    <ul style="text-align: left;">
+                        <li>Adaptive Data Rate (ADR)</li>
+                        <li>Spreading Factor dynamique</li>
+                        <li>Gestion intelligente des canaux</li>
+                        <li>Retry automatique avec backoff</li>
+                        <li>Compression des données</li>
+                    </ul>
+                </div>
+
+                <div class="component-card">
+                    <h3>⚡ Performance Web</h3>
+                    <ul style="text-align: left;">
+                        <li>WebSocket bidirectionnel</li>
+                        <li>Updates temps réel &lt;100ms</li>
+                        <li>Cache intelligent côté client</li>
+                        <li>Pagination automatique des graphiques</li>
+                        <li>Interface responsive mobile</li>
+                    </ul>
+                </div>
+
+                <div class="component-card">
+                    <h3>🔒 Sécurité</h3>
+                    <ul style="text-align: left;">
+                        <li>Chiffrement AES-128 LoRaWAN</li>
+                        <li>Authentification par clés réseau</li>
+                        <li>Intégrité des messages garantie</li>
+                        <li>Anti-replay protection</li>
+                        <li>Isolation des dispositifs</li>
+                    </ul>
+                </div>
+
+                <div class="component-card">
+                    <h3>📊 Monitoring</h3>
+                    <ul style="text-align: left;">
+                        <li>Métriques RSSI/SNR en temps réel</li>
+                        <li>Statistiques de gateway</li>
+                        <li>Alertes automatiques</li>
+                        <li>Logs détaillés des trames</li>
+                        <li>Dashboard de supervision</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="tech-specs">
+                <h3>📡 Paramètres Radio LoRaWAN</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+                    <div><strong>Fréquence:</strong> 868MHz (EU868)</div>
+                    <div><strong>Bande passante:</strong> 125 kHz</div>
+                    <div><strong>Spreading Factor:</strong> SF7-SF12</div>
+                    <div><strong>Puissance TX:</strong> 14 dBm max</div>
+                    <div><strong>Sensibilité RX:</strong> -137 dBm</div>
+                    <div><strong>Canaux:</strong> 8 canaux simultanés</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: Avantages et Applications -->
+        <div id="slide7" class="slide">
+            <h2>🎯 Avantages et Applications</h2>
+
+            <div class="benefits-grid">
+                <div class="benefit-item">
+                    <div style="font-size: 2em; margin-bottom: 10px;">🌱</div>
+                    <div>Agriculture de Précision</div>
+                </div>
+                <div class="benefit-item">
+                    <div style="font-size: 2em; margin-bottom: 10px;">💧</div>
+                    <div>Gestion Intelligente de l'Eau</div>
+                </div>
+                <div class="benefit-item">
+                    <div style="font-size: 2em; margin-bottom: 10px;">⚡</div>
+                    <div>Ultra Basse Consommation</div>
+                </div>
+                <div class="benefit-item">
+                    <div style="font-size: 2em; margin-bottom: 10px;">📡</div>
+                    <div>Longue Portée Sans Infrastructure</div>
+                </div>
+                <div class="benefit-item">
+                    <div style="font-size: 2em; margin-bottom: 10px;">🔧</div>
+                    <div>Installation Simplifiée</div>
+                </div>
+                <div class="benefit-item">
+                    <div style="font-size: 2em; margin-bottom: 10px;">💰</div>
+                    <div>Retour sur Investissement Rapide</div>
+                </div>
+            </div>
+
+            <div class="component-grid">
+                <div class="component-card">
+                    <h3>🌾 Applications Agricoles</h3>
+                    <ul style="text-align: left;">
+                        <li>Monitoring environnemental (T°, humidité, pH)</li>
+                        <li>Irrigation automatisée intelligente</li>
+                        <li>Gestion des réservoirs et citernes</li>
+                        <li>Contrôle des serres et tunnels</li>
+                        <li>Surveillance du bétail</li>
+                        <li>Alerte météorologique</li>
+                    </ul>
+                </div>
+
+                <div class="component-card">
+                    <h3>💡 Fonctionnalités Avancées</h3>
+                    <ul style="text-align: left;">
+                        <li>Interface 100% configurable JSON/Normal</li>
+                        <li>Graphiques temps réel interactifs</li>
+                        <li>Alertes et seuils personnalisables</li>
+                        <li>Export automatique Excel/CSV</li>
+                        <li>Mode manuel/automatique</li>
+                        <li>Dashboard responsive mobile</li>
+                    </ul>
+                </div>
+
+                <div class="component-card">
+                    <h3>🔧 Facilité de Déploiement</h3>
+                    <ul style="text-align: left;">
+                        <li>Configuration plug-and-play</li>
+                        <li>Interface web intuitive</li>
+                        <li>Gestion centralisée des dispositifs</li>
+                        <li>Mise à jour OTA (Over-The-Air)</li>
+                        <li>Support technique inclus</li>
+                        <li>Documentation complète</li>
+                    </ul>
+                </div>
+
+                <div class="component-card">
+                    <h3>📈 ROI et Économies</h3>
+                    <ul style="text-align: left;">
+                        <li>Réduction de 30% de la consommation d'eau</li>
+                        <li>Augmentation de 25% des rendements</li>
+                        <li>Diminution des coûts de maintenance</li>
+                        <li>Automatisation des tâches répétitives</li>
+                        <li>Prévention des pertes de récolte</li>
+                        <li>Optimisation des ressources</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="schema-container">
+                <h3>🎯 Cas d'Usage Typiques</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 20px;">
+                    <div style="background: linear-gradient(45deg, #4CAF50, #45a049); color: white; padding: 20px; border-radius: 10px;">
+                        <h4>🌾 Exploitation Céréalière</h4>
+                        <p>50 capteurs sur 100 hectares</p>
+                        <p>• Humidité du sol</p>
+                        <p>• Stations météo</p>
+                        <p>• Irrigation automatique</p>
+                    </div>
+                    <div style="background: linear-gradient(45deg, #2196F3, #1976D2); color: white; padding: 20px; border-radius: 10px;">
+                        <h4>🍇 Viticulture</h4>
+                        <p>30 capteurs répartis</p>
+                        <p>• Micro-climat parcellaire</p>
+                        <p>• Détection gel/maladie</p>
+                        <p>• Optimisation traitements</p>
+                    </div>
+                    <div style="background: linear-gradient(45deg, #FF9800, #F57C00); color: white; padding: 20px; border-radius: 10px;">
+                        <h4>🌿 Maraîchage</h4>
+                        <p>20 capteurs + 5 serres</p>
+                        <p>• Contrôle environnemental</p>
+                        <p>• Nutrition hydroponique</p>
+                        <p>• Gestion automatisée</p>
+                    </div>
+                    <div style="background: linear-gradient(45deg, #9C27B0, #673AB7); color: white; padding: 20px; border-radius: 10px;">
+                        <h4>🐄 Élevage</h4>
+                        <p>100 capteurs individuels</p>
+                        <p>• Surveillance bétail</p>
+                        <p>• Gestion abreuvoirs</p>
+                        <p>• Contrôle alimentation</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: Conclusion et Contact -->
+        <div id="slide8" class="slide">
+            <h2 style="text-align: center;">🎉 Conclusion</h2>
+            
+            <div style="text-align: center; margin: 40px 0;">
+                <div style="font-size: 3em; margin: 20px 0;">
+                    🌾 ✨ 🚀
+                </div>
+                <h3 style="color: #4CAF50; margin: 20px 0;">
+                    Solution IoT Agricole Complète et Évolutive
+                </h3>
+            </div>
+
+            <div class="component-grid">
+                <div class="component-card" style="border-left-color: #4CAF50;">
+                    <h3>✅ Réalisations</h3>
+                    <ul style="text-align: left;">
+                        <li>Architecture LoRaWAN opérationnelle</li>
+                        <li>Interface web complète et intuitive</li>
+                        <li>Communication temps réel fiable</li>
+                        <li>Gestion JSON/Normal flexible</li>
+                        <li>Monitoring avancé et alertes</li>
+                    </ul>
+                </div>
+
+                <div class="component-card" style="border-left-color: #2196F3;">
+                    <h3>🔮 Évolutions Futures</h3>
+                    <ul style="text-align: left;">
+                        <li>Intelligence artificielle prédictive</li>
+                        <li>Machine Learning pour optimisation</li>
+                        <li>Intégration drones et satellites</li>
+                        <li>Blockchain pour traçabilité</li>
+                        <li>API marketplace d'applications</li>
+                    </ul>
+                </div>
+
+                <div class="component-card" style="border-left-color: #FF9800;">
+                    <h3>🎯 Objectifs Atteints</h3>
+                    <ul style="text-align: left;">
+                        <li>Réduction des coûts opérationnels</li>
+                        <li>Amélioration des rendements</li>
+                        <li>Durabilité environnementale</li>
+                        <li>Facilité d'utilisation maximale</li>
+                        <li>Scalabilité industrielle</li>
+                    </ul>
+                </div>
+
+                <div class="component-card" style="border-left-color: #9C27B0;">
+                    <h3>📞 Support Technique</h3>
+                    <ul style="text-align: left;">
+                        <li>Documentation technique complète</li>
+                        <li>Formation utilisateurs incluse</li>
+                        <li>Maintenance préventive</li>
+                        <li>Support 24/7 disponible</li>
+                        <li>Mises à jour régulières</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div style="background: linear-gradient(45deg, #667eea, #764ba2); color: white; padding: 30px; border-radius: 15px; text-align: center; margin: 30px 0;">
+                <h3 style="color: white; margin-bottom: 20px;">
+                    🌟 Station Agricole IoT - L'Agriculture de Demain, Aujourd'hui
+                </h3>
+                <p style="font-size: 1.2em; margin: 15px 0;">
+                    Une solution complète, évolutive et prête pour l'industrie 4.0
+                </p>
+                <div style="display: flex; justify-content: center; gap: 30px; margin-top: 20px; flex-wrap: wrap;">
+                    <div>📧 support@station-agricole.fr</div>
+                    <div>📞 +33 1 23 45 67 89</div>
+                    <div>🌐 www.station-agricole.fr</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Navigation fluide
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                target.scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+
+        // Animation des métriques
+        function animateMetrics() {
+            const metrics = document.querySelectorAll('.metric-value');
+            metrics.forEach(metric => {
+                const text = metric.textContent;
+                if (text.includes('<')) return; // Skip non-numeric
+                
+                metric.style.opacity = '0';
+                setTimeout(() => {
+                    metric.style.opacity = '1';
+                    metric.style.transform = 'scale(1.1)';
+                    setTimeout(() => {
+                        metric.style.transform = 'scale(1)';
+                    }, 200);
+                }, 500);
+            });
+        }
+
+        // Observer pour les animations
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    if (entry.target.querySelector('.metric-value')) {
+                        animateMetrics();
+                    }
+                }
+            });
+        });
+
+        document.querySelectorAll('.slide').forEach(slide => {
+            observer.observe(slide);
+        });
+
+        // Animation des diagrammes
+        function animateDiagram() {
+            const layers = document.querySelectorAll('.layer');
+            layers.forEach((layer, index) => {
+                layer.style.opacity = '0';
+                layer.style.transform = 'translateX(-50%) translateY(20px)';
+                setTimeout(() => {
+                    layer.style.transition = 'all 0.5s ease';
+                    layer.style.opacity = '1';
+                    layer.style.transform = 'translateX(-50%) translateY(0)';
+                }, index * 200);
+            });
+        }
+
+        // Démarrer les animations au chargement
+        window.addEventListener('load', () => {
+            setTimeout(animateDiagram, 1000);
+        });
+    </script>
+</body>
+</html>

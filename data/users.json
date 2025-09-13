@@ -1,0 +1,14 @@
+[
+  {
+    "id": "1750716497852zhyp3",
+    "username": "admin",
+    "password": "$2b$12$/RqBW5IE2DzEEmEwNn.DlO1mK5ysHpCez9E0DsvEarn/vj/GE6zX6",
+    "role": "admin",
+    "fullName": "Administrateur",
+    "email": "admin@farm.local",
+    "active": true,
+    "createdAt": "2025-06-23T22:08:17.852Z",
+    "createdBy": "seed-script",
+    "lastLogin": "2025-07-04T18:14:34.776Z"
+  }
+]
