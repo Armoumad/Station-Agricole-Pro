@@ -1,0 +1,170 @@
+[
+  {
+    "id": "1751399495421",
+    "timestamp": "2025-07-01T19:51:35.421Z",
+    "type": "server_started",
+    "message": "Serveur Station Agricole Pro v3.0 démarré sur port 3000",
+    "level": "success"
+  },
+  {
+    "id": "1751399508103",
+    "timestamp": "2025-07-01T19:51:48.103Z",
+    "type": "client_connected",
+    "message": "Client connecté: anonyme",
+    "level": "info"
+  },
+  {
+    "id": "1751399516461",
+    "timestamp": "2025-07-01T19:51:56.461Z",
+    "type": "mqtt_error",
+    "message": "Erreur MQTT: connect ETIMEDOUT 192.168.230.1:1883",
+    "level": "error"
+  },
+  {
+    "id": "1751399521478",
+    "timestamp": "2025-07-01T19:52:01.478Z",
+    "type": "mqtt_reconnecting",
+    "message": "Reconnexion MQTT en cours",
+    "level": "warning"
+  },
+  {
+    "id": "1751399542505",
+    "timestamp": "2025-07-01T19:52:22.505Z",
+    "type": "mqtt_error",
+    "message": "Erreur MQTT: connect ETIMEDOUT 192.168.230.1:1883",
+    "level": "error"
+  },
+  {
+    "id": "1751399547514",
+    "timestamp": "2025-07-01T19:52:27.514Z",
+    "type": "mqtt_reconnecting",
+    "message": "Reconnexion MQTT en cours",
+    "level": "warning"
+  },
+  {
+    "id": "1751399568569",
+    "timestamp": "2025-07-01T19:52:48.569Z",
+    "type": "mqtt_error",
+    "message": "Erreur MQTT: connect ETIMEDOUT 192.168.230.1:1883",
+    "level": "error"
+  },
+  {
+    "id": "1751399573573",
+    "timestamp": "2025-07-01T19:52:53.573Z",
+    "type": "mqtt_reconnecting",
+    "message": "Reconnexion MQTT en cours",
+    "level": "warning"
+  },
+  {
+    "id": "1751399594611",
+    "timestamp": "2025-07-01T19:53:14.611Z",
+    "type": "mqtt_error",
+    "message": "Erreur MQTT: connect ETIMEDOUT 192.168.230.1:1883",
+    "level": "error"
+  },
+  {
+    "id": "1751399599624",
+    "timestamp": "2025-07-01T19:53:19.624Z",
+    "type": "mqtt_reconnecting",
+    "message": "Reconnexion MQTT en cours",
+    "level": "warning"
+  },
+  {
+    "id": "1751399620679",
+    "timestamp": "2025-07-01T19:53:40.679Z",
+    "type": "mqtt_error",
+    "message": "Erreur MQTT: connect ETIMEDOUT 192.168.230.1:1883",
+    "level": "error"
+  },
+  {
+    "id": "1751399625691",
+    "timestamp": "2025-07-01T19:53:45.691Z",
+    "type": "mqtt_reconnecting",
+    "message": "Reconnexion MQTT en cours",
+    "level": "warning"
+  },
+  {
+    "id": "1751399646743",
+    "timestamp": "2025-07-01T19:54:06.743Z",
+    "type": "mqtt_error",
+    "message": "Erreur MQTT: connect ETIMEDOUT 192.168.230.1:1883",
+    "level": "error"
+  },
+  {
+    "id": "1751399651756",
+    "timestamp": "2025-07-01T19:54:11.756Z",
+    "type": "mqtt_reconnecting",
+    "message": "Reconnexion MQTT en cours",
+    "level": "warning"
+  },
+  {
+    "id": "1751399661893",
+    "timestamp": "2025-07-01T19:54:21.893Z",
+    "type": "server_shutdown",
+    "message": "Arrêt du serveur demandé",
+    "level": "warning"
+  },
+  {
+    "id": "1751401583279",
+    "timestamp": "2025-07-01T20:26:23.279Z",
+    "type": "server_started",
+    "message": "Serveur Station Agricole Pro v3.0 démarré sur port 3000",
+    "level": "success"
+  },
+  {
+    "id": "1751401586935",
+    "timestamp": "2025-07-01T20:26:26.935Z",
+    "type": "client_connected",
+    "message": "Client connecté: anonyme",
+    "level": "info"
+  },
+  {
+    "id": "1751401595164",
+    "timestamp": "2025-07-01T20:26:35.164Z",
+    "type": "client_connected",
+    "message": "Client connecté: anonyme",
+    "level": "info"
+  },
+  {
+    "id": "1751401604317",
+    "timestamp": "2025-07-01T20:26:44.317Z",
+    "type": "mqtt_error",
+    "message": "Erreur MQTT: connect ETIMEDOUT 192.168.230.1:1883",
+    "level": "error"
+  },
+  {
+    "id": "1751401609334",
+    "timestamp": "2025-07-01T20:26:49.334Z",
+    "type": "mqtt_reconnecting",
+    "message": "Reconnexion MQTT en cours",
+    "level": "warning"
+  },
+  {
+    "id": "1751401628670",
+    "timestamp": "2025-07-01T20:27:08.670Z",
+    "type": "client_disconnected",
+    "message": "Client déconnecté: anonyme",
+    "level": "info"
+  },
+  {
+    "id": "1751401628691",
+    "timestamp": "2025-07-01T20:27:08.691Z",
+    "type": "client_disconnected",
+    "message": "Client déconnecté: anonyme",
+    "level": "info"
+  },
+  {
+    "id": "1751401630390",
+    "timestamp": "2025-07-01T20:27:10.390Z",
+    "type": "mqtt_error",
+    "message": "Erreur MQTT: connect ETIMEDOUT 192.168.230.1:1883",
+    "level": "error"
+  },
+  {
+    "id": "1751401631407",
+    "timestamp": "2025-07-01T20:27:11.407Z",
+    "type": "server_shutdown",
+    "message": "Arrêt du serveur demandé",
+    "level": "warning"
+  }
+]

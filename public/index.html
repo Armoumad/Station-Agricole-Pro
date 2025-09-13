@@ -1,0 +1,3595 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Station Agricole - Interface ChirpStack Complète</title>
+    <!-- Socket.io pour temps réel -->
+    <script src="/socket.io/socket.io.js"></script>
+    <!-- Chart.js pour les graphiques -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.js"></script>
+    
+    <!-- CSS COMPLET AMÉLIORÉ -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        .nav-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .nav-wrapper {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: clamp(1.2em, 4vw, 1.8em);
+            font-weight: 700;
+            color: #1e3c72;
+        }
+
+        .logo-icon {
+            font-size: 1.5em;
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.2));
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 8px;
+            list-style: none;
+            flex-wrap: wrap;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            text-decoration: none;
+            color: #666;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            font-size: 0.9em;
+            white-space: nowrap;
+        }
+
+        .nav-link:hover {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.3);
+        }
+
+        .nav-link.active {
+            background: linear-gradient(45deg, #2196F3, #1976D2);
+            color: white;
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.4);
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(76, 175, 80, 0.1);
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4CAF50;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.offline {
+            background: #f44336;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
+
+        .main-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px 15px;
+        }
+
+        .management-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .panel-title {
+            color: #1e3c72;
+            font-size: clamp(1.2em, 4vw, 1.5em);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .add-button, .export-button, .chart-button {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+        }
+
+        .export-button {
+            background: linear-gradient(45deg, #FF9800, #F57C00);
+        }
+
+        .chart-button {
+            background: linear-gradient(45deg, #9C27B0, #673AB7);
+        }
+
+        .add-button:hover, .export-button:hover, .chart-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .sensors-grid, .reservoirs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+            gap: 20px;
+        }
+
+        .sensor-card, .reservoir-card {
+            background: linear-gradient(145deg, #ffffff, #f8f9fa);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            border-left: 4px solid var(--card-color, #2196F3);
+        }
+
+        .sensor-card:hover, .reservoir-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .sensor-header, .reservoir-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .sensor-info, .reservoir-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .sensor-icon, .reservoir-icon {
+            font-size: 2.2em;
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.1));
+            flex-shrink: 0;
+        }
+
+        .sensor-details, .reservoir-details {
+            min-width: 0;
+            flex: 1;
+        }
+
+        .sensor-details h3, .reservoir-details h3 {
+            color: #333;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+            word-break: break-word;
+        }
+
+        .sensor-type, .reservoir-type {
+            color: #666;
+            font-size: 0.85em;
+            word-break: break-all;
+        }
+
+        .json-badge {
+            background: linear-gradient(45deg, #9C27B0, #673AB7);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7em;
+            font-weight: 600;
+            margin-top: 5px;
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+        .normal-badge {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7em;
+            font-weight: 600;
+            margin-top: 5px;
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+        .chirpstack-badge {
+            background: linear-gradient(45deg, #FF5722, #E64A19);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7em;
+            font-weight: 600;
+            margin-top: 5px;
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+        .chirpstack-badge.receive {
+            background: linear-gradient(45deg, #2196F3, #1976D2);
+        }
+
+        .chirpstack-badge.send {
+            background: linear-gradient(45deg, #FF5722, #E64A19);
+        }
+
+        .mode-badge {
+            background: linear-gradient(45deg, #FF9800, #F57C00);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7em;
+            font-weight: 600;
+            margin-top: 5px;
+            display: inline-block;
+        }
+
+        .mode-badge.manual {
+            background: linear-gradient(45deg, #607D8B, #455A64);
+        }
+
+        .jsonpath-info {
+            color: #9C27B0;
+            font-size: 0.75em;
+            font-weight: 600;
+            margin-top: 3px;
+        }
+
+        .topic-config {
+            background: rgba(156, 39, 176, 0.05);
+            padding: 8px;
+            border-radius: 8px;
+            margin-top: 8px;
+            border-left: 3px solid #9C27B0;
+        }
+
+        .topic-line {
+            font-size: 0.7em;
+            color: #666;
+            margin: 2px 0;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 5px;
+            flex-shrink: 0;
+        }
+
+        .action-btn-small, .chart-btn-small, .mode-btn-small {
+            background: none;
+            border: none;
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1em;
+        }
+
+        .action-btn-small:hover, .chart-btn-small:hover, .mode-btn-small:hover {
+            background: rgba(0, 0, 0, 0.1);
+            transform: scale(1.1);
+        }
+
+        .chart-btn-small {
+            color: #9C27B0;
+        }
+
+        .mode-btn-small {
+            color: #FF9800;
+        }
+
+        .sensor-value {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .value-display {
+            font-size: clamp(1.8em, 6vw, 2.5em);
+            font-weight: 700;
+            color: var(--card-color, #2196F3);
+            margin-bottom: 5px;
+        }
+
+        .value-unit {
+            color: #666;
+            font-size: 1em;
+            font-weight: 500;
+        }
+
+        .reservoir-visual {
+            width: 70px;
+            height: 100px;
+            margin: 0 auto 15px;
+            border: 3px solid #333;
+            border-radius: 0 0 12px 12px;
+            position: relative;
+            background: #f9f9f9;
+            overflow: hidden;
+        }
+
+        .reservoir-fill {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(180deg, var(--card-color, #2196F3), color-mix(in srgb, var(--card-color, #2196F3) 80%, black));
+            transition: height 0.8s ease;
+            border-radius: 0 0 9px 9px;
+        }
+
+        .reservoir-level-text {
+            text-align: center;
+            margin: 15px 0;
+        }
+
+        .level-percentage {
+            font-size: 1.4em;
+            font-weight: 700;
+            color: var(--card-color, #2196F3);
+            margin-bottom: 5px;
+        }
+
+        .level-volume {
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .reservoir-controls {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            padding: 8px 14px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 0.8em;
+            white-space: nowrap;
+        }
+
+        .pump-btn {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .pump-btn.stopped {
+            background: #f44336;
+        }
+
+        .fill-btn {
+            background: #FF9800;
+            color: white;
+        }
+
+        .mode-btn {
+            background: #FF9800;
+            color: white;
+        }
+
+        .mode-btn.manual {
+            background: #607D8B;
+        }
+
+        .edit-btn {
+            background: #2196F3;
+            color: white;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .sensor-status, .reservoir-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-online {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4CAF50;
+        }
+
+        .status-offline {
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+        }
+
+        .status-warning {
+            background: rgba(255, 152, 0, 0.2);
+            color: #FF9800;
+        }
+
+        .last-update {
+            font-size: 0.75em;
+            color: #666;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: white;
+            margin: 0 auto;
+            padding: 25px;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 800px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .chart-modal-content {
+            max-width: 900px;
+            width: 95%;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .modal-title {
+            color: #1e3c72;
+            font-size: 1.3em;
+            font-weight: 600;
+        }
+
+        .close {
+            color: #aaa;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            background: none;
+            padding: 5px;
+        }
+
+        .close:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #333;
+            font-size: 0.9em;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 0.9em;
+            transition: border-color 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .form-row-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+        }
+
+        .payload-type-section {
+            background: rgba(156, 39, 176, 0.1);
+            padding: 15px;
+            border-radius: 12px;
+            margin: 15px 0;
+            border: 2px solid rgba(156, 39, 176, 0.2);
+        }
+
+        .topic-section {
+            background: rgba(33, 150, 243, 0.05);
+            padding: 15px;
+            border-radius: 12px;
+            margin: 15px 0;
+            border: 2px solid rgba(33, 150, 243, 0.2);
+        }
+
+        .topic-group {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            border-left: 4px solid #2196F3;
+        }
+
+        .topic-group.pump {
+            border-left-color: #4CAF50;
+        }
+
+        .topic-group.fill {
+            border-left-color: #FF9800;
+        }
+
+        .topic-group.mode {
+            border-left-color: #9C27B0;
+        }
+
+        .json-options {
+            display: none;
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(156, 39, 176, 0.05);
+            border-radius: 10px;
+            border-left: 4px solid #9C27B0;
+        }
+
+        .json-options.show {
+            display: block;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            transform: scale(1.2);
+        }
+
+        .example-text {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 8px;
+        }
+
+        .chirpstack-info {
+            background: #e3f2fd;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.8em;
+            color: #1976d2;
+            margin-top: 8px;
+            border-left: 4px solid #2196F3;
+        }
+
+        .submit-btn {
+            background: linear-gradient(45deg, #2196F3, #1976D2);
+            color: white;
+            border: none;
+            padding: 14px 25px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            width: 100%;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin: 20px 0;
+        }
+
+        .chart-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .period-btn {
+            padding: 8px 16px;
+            border: 2px solid #2196F3;
+            background: white;
+            color: #2196F3;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+        }
+
+        .period-btn.active {
+            background: #2196F3;
+            color: white;
+        }
+
+        .period-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(76, 175, 80, 0.95);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 3000;
+            max-width: 300px;
+            font-size: 0.9em;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.error {
+            background: rgba(244, 67, 54, 0.95);
+        }
+
+        .notification.warning {
+            background: rgba(255, 152, 0, 0.95);
+        }
+
+        .notification.success {
+            background: rgba(76, 175, 80, 0.95);
+        }
+
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+
+        .empty-state-icon {
+            font-size: 3em;
+            margin-bottom: 20px;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                padding: 15px 0;
+            }
+
+            .nav-menu {
+                justify-content: center;
+                width: 100%;
+            }
+
+            .nav-link {
+                padding: 8px 12px;
+                font-size: 0.8em;
+            }
+
+            .panel-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .panel-actions {
+                justify-content: center;
+            }
+
+            .sensors-grid,
+            .reservoirs-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .modal-content, .chart-modal-content {
+                margin: 10px auto;
+                padding: 20px;
+                width: 95%;
+            }
+
+            .form-row, .form-row-3 {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-container {
+                height: 300px;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <div class="nav-container">
+        <div class="nav-wrapper">
+            <nav class="navbar">
+                <div class="logo">
+                    <div class="logo-icon">🌾</div>
+                    <span>Station agricule Msi </span>
+                </div>
+                
+                <ul class="nav-menu">
+                    <li class="nav-item">
+                        <a href="#" class="nav-link active" data-section="sensors">
+                            <span>📊</span>
+                            <span>Capteurs</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link" data-section="reservoirs">
+                            <span>🫗</span>
+                            <span>Réservoirs</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link" data-section="settings">
+                            <span>⚙️</span>
+                            <span>Paramètres</span>
+                        </a>
+                    </li>
+                </ul>
+                
+                <div class="system-status">
+                    <div class="status-indicator">
+                        <div class="status-dot" id="mqttStatus"></div>
+                        <span id="connectionStatus">Connexion MQTT</span>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Sensors Section -->
+        <div id="sensors-section" class="section active">
+            <div class="management-panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">
+                        <span>📊</span>
+                        <span>Gestion des Capteurs</span>
+                    </h2>
+                    <div class="panel-actions">
+                        <button class="export-button" onclick="exportSensorsToExcel()">
+                            <span>📋</span>
+                            <span>Export Excel</span>
+                        </button>
+                        <button class="chart-button" onclick="openOverviewChart()">
+                            <span>📈</span>
+                            <span>Graphiques</span>
+                        </button>
+                        <button class="add-button" onclick="openAddSensorModal()">
+                            <span>➕</span>
+                            <span>Ajouter</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="sensorsGrid" class="sensors-grid">
+                    <!-- Sensors will be dynamically loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Reservoirs Section -->
+        <div id="reservoirs-section" class="section hidden">
+            <div class="management-panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">
+                        <span>🫗</span>
+                        <span>Gestion des Réservoirs</span>
+                    </h2>
+                    <div class="panel-actions">
+                        <button class="export-button" onclick="exportReservoirsToExcel()">
+                            <span>📋</span>
+                            <span>Export Excel</span>
+                        </button>
+                        <button class="chart-button" onclick="openReservoirChart()">
+                            <span>📈</span>
+                            <span>Graphiques</span>
+                        </button>
+                        <button class="add-button" onclick="openAddReservoirModal()">
+                            <span>➕</span>
+                            <span>Ajouter</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="reservoirsGrid" class="reservoirs-grid">
+                    <!-- Reservoirs will be dynamically loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Section -->
+        <div id="settings-section" class="section hidden">
+            <div class="management-panel">
+                <h2 class="panel-title">
+                    <span>⚙️</span>
+                    <span>Configuration MQTT ChirpStack</span>
+                </h2>
+                <div class="form-group">
+                    <label>Serveur MQTT:</label>
+                    <input type="text" id="mqttServer" placeholder="mqtt://192.168.1.100:1883">
+                </div>
+                <div class="form-group">
+                    <label>Topic de base:</label>
+                    <input type="text" id="mqttBaseTopic" placeholder="application/+/device/+/event/up">
+                </div>
+                <div class="form-group">
+                    <label>Intervalle de mise à jour (ms):</label>
+                    <input type="number" id="updateInterval" value="5000" min="1000">
+                </div>
+                <div class="panel-actions">
+                    <button class="submit-btn" onclick="saveSettings()">💾 Sauvegarder Configuration</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALES -->
+    <!-- Add Sensor Modal AMÉLIORÉ CHIRPSTACK -->
+    <div id="addSensorModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Ajouter un Capteur ChirpStack</h2>
+                <button class="close" onclick="closeModal('addSensorModal')">&times;</button>
+            </div>
+            <form id="addSensorForm">
+                <div class="form-group">
+                    <label>Nom du capteur:</label>
+                    <input type="text" id="sensorName" required placeholder="Ex: Température Serre 1">
+                </div>
+                
+                <div class="form-group">
+                    <label>Type de capteur:</label>
+                    <select id="sensorType" required>
+                        <option value="">Sélectionner un type</option>
+                        <option value="temperature">🌡️ Température</option>
+                        <option value="humidity">💧 Humidité</option>
+                        <option value="light">☀️ Luminosité</option>
+                        <option value="ph">🧪 pH</option>
+                        <option value="moisture">🌱 Humidité du sol</option>
+                        <option value="wind">💨 Vent</option>
+                        <option value="rain">🌧️ Pluie</option>
+                        <option value="pressure">📊 Pression</option>
+                        <option value="co2">🫧 CO2</option>
+                        <option value="nutrition">🌿 Nutrition</option>
+                        <option value="custom">🔧 Personnalisé</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="customTypeGroup" style="display: none;">
+                    <label>Icône personnalisée (emoji):</label>
+                    <input type="text" id="customIcon" placeholder="🔧" maxlength="2">
+                </div>
+
+                <div class="form-group">
+                    <label>Topic MQTT ChirpStack:</label>
+                    <input type="text" id="sensorTopic" placeholder="application/3/device/70b3d57ed004c7dc/event/up" required>
+                </div>
+
+                <!-- Configuration Payload ChirpStack -->
+                <div class="payload-type-section">
+                    <label style="font-size: 1em; color: #9C27B0; font-weight: 700;">📋 Configuration du Payload ChirpStack</label>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="isJsonPayload">
+                        <label for="isJsonPayload">Le payload est au format JSON</label>
+                    </div>
+
+                    <div id="jsonOptions" class="json-options">
+                        <div class="form-group">
+                            <label>Format JSON:</label>
+                            <select id="jsonFormat">
+                                <option value="chirpstack_receive">📥 ChirpStack Réception (avec applicationID, object, etc.)</option>
+                                <option value="chirpstack_send">📤 ChirpStack Envoi (confirmed, data, fPort)</option>
+                                <option value="simple">🔧 Simple JSON (format personnalisé)</option>
+                            </select>
+                            <div class="chirpstack-info">
+                                <strong>ChirpStack Réception:</strong> Format complet avec applicationID, deviceName, object décodé<br>
+                                <strong>ChirpStack Envoi:</strong> Format pour envoyer des commandes<br>
+                                <strong>Simple:</strong> Format JSON personnalisé
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>JSONPath pour extraire la valeur:</label>
+                            <input type="text" id="jsonPath" placeholder="object.temperature_c">
+                            <div class="example-text">
+                                ChirpStack: object.temperature_c, object.humidity_percent<br>
+                                Simple: data.sensors.temp, payload.value
+                            </div>
+                        </div>
+
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="showReceivedTimestamp">
+                            <label for="showReceivedTimestamp">Afficher le timestamp de réception</label>
+                        </div>
+
+                        <div class="form-group">
+                            <label>QoS MQTT:</label>
+                            <select id="mqttQos">
+                                <option value="0">0 - Au plus une fois</option>
+                                <option value="1" selected>1 - Au moins une fois</option>
+                                <option value="2">2 - Exactement une fois</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Unité:</label>
+                        <input type="text" id="sensorUnit" placeholder="°C">
+                    </div>
+                    <div class="form-group">
+                        <label>Couleur:</label>
+                        <input type="color" id="sensorColor" value="#2196F3">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Valeur min (alarme):</label>
+                        <input type="number" id="sensorMinValue" step="0.1" placeholder="10">
+                    </div>
+                    <div class="form-group">
+                        <label>Valeur max (alarme):</label>
+                        <input type="number" id="sensorMaxValue" step="0.1" placeholder="30">
+                    </div>
+                </div>
+                
+                <button type="submit" class="submit-btn">➕ Ajouter Capteur ChirpStack</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Sensor Modal AMÉLIORÉ CHIRPSTACK -->
+    <div id="editSensorModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Modifier le Capteur ChirpStack</h2>
+                <button class="close" onclick="closeModal('editSensorModal')">&times;</button>
+            </div>
+            <form id="editSensorForm">
+                <input type="hidden" id="editSensorId">
+                <div class="form-group">
+                    <label>Nom du capteur:</label>
+                    <input type="text" id="editSensorName" required>
+                </div>
+                <div class="form-group">
+                    <label>Topic MQTT ChirpStack:</label>
+                    <input type="text" id="editSensorTopic" required>
+                </div>
+
+                <div class="payload-type-section">
+                    <label style="font-size: 1em; color: #9C27B0; font-weight: 700;">📋 Configuration du Payload ChirpStack</label>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="editIsJsonPayload">
+                        <label for="editIsJsonPayload">Le payload est au format JSON</label>
+                    </div>
+
+                    <div id="editJsonOptions" class="json-options">
+                        <div class="form-group">
+                            <label>Format JSON:</label>
+                            <select id="editJsonFormat">
+                                <option value="chirpstack_receive">📥 ChirpStack Réception</option>
+                                <option value="chirpstack_send">📤 ChirpStack Envoi</option>
+                                <option value="simple">🔧 Simple JSON</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>JSONPath pour extraire la valeur:</label>
+                            <input type="text" id="editJsonPath" placeholder="object.temperature_c">
+                        </div>
+
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="editShowReceivedTimestamp">
+                            <label for="editShowReceivedTimestamp">Afficher le timestamp de réception</label>
+                        </div>
+
+                        <div class="form-group">
+                            <label>QoS MQTT:</label>
+                            <select id="editMqttQos">
+                                <option value="0">0 - Au plus une fois</option>
+                                <option value="1">1 - Au moins une fois</option>
+                                <option value="2">2 - Exactement une fois</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Unité:</label>
+                        <input type="text" id="editSensorUnit">
+                    </div>
+                    <div class="form-group">
+                        <label>Couleur:</label>
+                        <input type="color" id="editSensorColor">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Valeur min (alarme):</label>
+                        <input type="number" id="editSensorMinValue" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label>Valeur max (alarme):</label>
+                        <input type="number" id="editSensorMaxValue" step="0.1">
+                    </div>
+                </div>
+                <button type="submit" class="submit-btn">💾 Sauvegarder</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Reservoir Modal AMÉLIORÉ CHIRPSTACK -->
+    <div id="addReservoirModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Ajouter un Réservoir ChirpStack</h2>
+                <button class="close" onclick="closeModal('addReservoirModal')">&times;</button>
+            </div>
+            <form id="addReservoirForm">
+                <div class="form-group">
+                    <label>Nom du réservoir:</label>
+                    <input type="text" id="reservoirName" required placeholder="Ex: Réservoir Principal">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Type de contenu:</label>
+                        <select id="reservoirType" required>
+                            <option value="">Sélectionner un type</option>
+                            <option value="water">💧 Eau</option>
+                            <option value="fertilizer">🌿 Engrais</option>
+                            <option value="pesticide">🦟 Pesticide</option>
+                            <option value="nutrition">🍃 Solution nutritive</option>
+                            <option value="fuel">⛽ Carburant</option>
+                            <option value="acid">🧪 Acide</option>
+                            <option value="base">⚗️ Base</option>
+                            <option value="custom">🔧 Personnalisé</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Capacité totale (L):</label>
+                        <input type="number" id="reservoirCapacity" required min="1" placeholder="1000">
+                    </div>
+                </div>
+                <div class="form-group" id="customReservoirGroup" style="display: none;">
+                    <label>Icône personnalisée (emoji):</label>
+                    <input type="text" id="customReservoirIcon" placeholder="🔧" maxlength="2">
+                </div>
+
+                <!-- CONFIGURATION PAYLOAD RÉSERVOIRS CHIRPSTACK -->
+                <div class="payload-type-section">
+                    <label style="font-size: 1em; color: #9C27B0; font-weight: 700;">📋 Configuration du Payload ChirpStack</label>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="showReceivedTimestamp">
+                        <label for="showReceivedTimestamp">Afficher le timestamp de réception</label>
+                    </div>
+                </div>
+
+                <!-- CONFIGURATION TOPICS CHIRPSTACK -->
+                <div class="topic-section">
+                    <label style="font-size: 1em; color: #2196F3; font-weight: 700;">🔗 Configuration des Topics MQTT ChirpStack</label>
+                    
+                    <!-- Topic Niveau (obligatoire) -->
+                    <div class="topic-group">
+                        <h4 style="color: #2196F3; margin-bottom: 10px;">📊 Topic Niveau (obligatoire)</h4>
+                        <div class="form-group">
+                            <label>Topic MQTT niveau:</label>
+                            <input type="text" id="reservoirTopic" placeholder="application/3/device/70b3d57ed004c7dc/event/up" required>
+                        </div>
+                        
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="isJsonPayloadLevel" checked>
+                            <label for="isJsonPayloadLevel">Payload JSON pour le niveau</label>
+                        </div>
+
+                        <div id="jsonOptionsLevel" class="json-options show">
+                            <div class="form-group">
+                                <label>Format JSON niveau:</label>
+                                <select id="jsonFormatLevel">
+                                    <option value="chirpstack_receive" selected>📥 ChirpStack Réception</option>
+                                    <option value="chirpstack_send">📤 ChirpStack Envoi</option>
+                                    <option value="simple">🔧 Simple JSON</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>JSONPath pour extraire le niveau:</label>
+                                <input type="text" id="jsonPathLevel" placeholder="object.water_level">
+                                <div class="example-text">Ex: object.water_level, object.level_percent, data.level</div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>QoS MQTT niveau:</label>
+                            <select id="mqttQosLevel">
+                                <option value="0">0 - Au plus une fois</option>
+                                <option value="1" selected>1 - Au moins une fois</option>
+                                <option value="2">2 - Exactement une fois</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Topic Pompe (optionnel) -->
+                    <div class="topic-group pump">
+                        <h4 style="color: #4CAF50; margin-bottom: 10px;">🔧 Topic Pompe (optionnel)</h4>
+                        <div class="form-group">
+                            <label>Topic MQTT pompe:</label>
+                            <input type="text" id="reservoirPumpTopic" placeholder="application/3/device/70b3d57ed004c7dc/command/down">
+                        </div>
+                        
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="isJsonPayloadPump" checked>
+                            <label for="isJsonPayloadPump">Payload JSON pour la pompe</label>
+                        </div>
+
+                        <div id="jsonOptionsPump" class="json-options show">
+                            <div class="form-group">
+                                <label>Format JSON pompe:</label>
+                                <select id="jsonFormatPump">
+                                    <option value="chirpstack_receive">📥 ChirpStack Réception</option>
+                                    <option value="chirpstack_send" selected>📤 ChirpStack Envoi</option>
+                                    <option value="simple">🔧 Simple JSON</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>JSONPath pour lire l'état pompe:</label>
+                                <input type="text" id="jsonPathPump" placeholder="object.pump_status">
+                                <div class="example-text">Ex: object.pump_status, status.pump, data.pump</div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>QoS MQTT pompe:</label>
+                            <select id="mqttQosPump">
+                                <option value="0">0 - Au plus une fois</option>
+                                <option value="1" selected>1 - Au moins une fois</option>
+                                <option value="2">2 - Exactement une fois</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Topic Remplissage (optionnel) -->
+                    <div class="topic-group fill">
+                        <h4 style="color: #FF9800; margin-bottom: 10px;">🔄 Topic Remplissage (optionnel)</h4>
+                        <div class="form-group">
+                            <label>Topic MQTT remplissage:</label>
+                            <input type="text" id="reservoirFillTopic" placeholder="application/3/device/70b3d57ed004c7dc/command/down">
+                        </div>
+                        
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="isJsonPayloadFill" checked>
+                            <label for="isJsonPayloadFill">Payload JSON pour le remplissage</label>
+                        </div>
+
+                        <div id="jsonOptionsFill" class="json-options show">
+                            <div class="form-group">
+                                <label>Format JSON remplissage:</label>
+                                <select id="jsonFormatFill">
+                                    <option value="chirpstack_receive">📥 ChirpStack Réception</option>
+                                    <option value="chirpstack_send" selected>📤 ChirpStack Envoi</option>
+                                    <option value="simple">🔧 Simple JSON</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>JSONPath pour lire l'état remplissage:</label>
+                                <input type="text" id="jsonPathFill" placeholder="object.fill_status">
+                                <div class="example-text">Ex: object.fill_status, status.fill, data.fill</div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>QoS MQTT remplissage:</label>
+                            <select id="mqttQosFill">
+                                <option value="0">0 - Au plus une fois</option>
+                                <option value="1" selected>1 - Au moins une fois</option>
+                                <option value="2">2 - Exactement une fois</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Topic Mode (optionnel) -->
+                    <div class="topic-group mode">
+                        <h4 style="color: #9C27B0; margin-bottom: 10px;">🎛️ Topic Mode Manuel/Automatique (optionnel)</h4>
+                        <div class="form-group">
+                            <label>Topic MQTT mode:</label>
+                            <input type="text" id="reservoirModeTopic" placeholder="application/3/device/70b3d57ed004c7dc/command/down">
+                        </div>
+                        
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="isJsonPayloadMode" checked>
+                            <label for="isJsonPayloadMode">Payload JSON pour le mode</label>
+                        </div>
+
+                        <div id="jsonOptionsMode" class="json-options show">
+                            <div class="form-group">
+                                <label>Format JSON mode:</label>
+                                <select id="jsonFormatMode">
+                                    <option value="chirpstack_receive">📥 ChirpStack Réception</option>
+                                    <option value="chirpstack_send" selected>📤 ChirpStack Envoi</option>
+                                    <option value="simple">🔧 Simple JSON</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>JSONPath pour lire le mode:</label>
+                                <input type="text" id="jsonPathMode" placeholder="object.mode">
+                                <div class="example-text">Ex: object.mode, status.operation_mode, data.mode</div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>QoS MQTT mode:</label>
+                            <select id="mqttQosMode">
+                                <option value="0">0 - Au plus une fois</option>
+                                <option value="1" selected>1 - Au moins une fois</option>
+                                <option value="2">2 - Exactement une fois</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Seuil d'alerte bas (%):</label>
+                        <input type="number" id="reservoirLowThreshold" value="20" min="0" max="100">
+                    </div>
+                    <div class="form-group">
+                        <label>Couleur:</label>
+                        <input type="color" id="reservoirColor" value="#2196F3">
+                    </div>
+                </div>
+                
+                <button type="submit" class="submit-btn">➕ Ajouter Réservoir ChirpStack</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Reservoir Modal AMÉLIORÉ CHIRPSTACK -->
+    <div id="editReservoirModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Modifier le Réservoir ChirpStack</h2>
+                <button class="close" onclick="closeModal('editReservoirModal')">&times;</button>
+            </div>
+            <form id="editReservoirForm">
+                <input type="hidden" id="editReservoirId">
+                <div class="form-group">
+                    <label>Nom du réservoir:</label>
+                    <input type="text" id="editReservoirName" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Capacité totale (L):</label>
+                        <input type="number" id="editReservoirCapacity" required min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>Couleur:</label>
+                        <input type="color" id="editReservoirColor">
+                    </div>
+                </div>
+
+                <!-- CONFIGURATION PAYLOAD RÉSERVOIRS CHIRPSTACK -->
+                <div class="payload-type-section">
+                    <label style="font-size: 1em; color: #9C27B0; font-weight: 700;">📋 Configuration du Payload ChirpStack</label>
+                    
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="editShowReceivedTimestamp">
+                        <label for="editShowReceivedTimestamp">Afficher le timestamp de réception</label>
+                    </div>
+                </div>
+
+                <!-- CONFIGURATION TOPICS EDIT CHIRPSTACK -->
+                <div class="topic-section">
+                    <label style="font-size: 1em; color: #2196F3; font-weight: 700;">🔗 Configuration des Topics MQTT ChirpStack</label>
+                    
+                    <!-- Topic Niveau (obligatoire) -->
+                    <div class="topic-group">
+                        <h4 style="color: #2196F3; margin-bottom: 10px;">📊 Topic Niveau (obligatoire)</h4>
+                        <div class="form-group">
+                            <label>Topic MQTT niveau:</label>
+                            <input type="text" id="editReservoirTopic" required>
+                        </div>
+                        
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="editIsJsonPayloadLevel">
+                            <label for="editIsJsonPayloadLevel">Payload JSON pour le niveau</label>
+                        </div>
+
+                        <div id="editJsonOptionsLevel" class="json-options">
+                            <div class="form-group">
+                                <label>Format JSON niveau:</label>
+                                <select id="editJsonFormatLevel">
+                                    <option value="chirpstack_receive">📥 ChirpStack Réception</option>
+                                    <option value="chirpstack_send">📤 ChirpStack Envoi</option>
+                                    <option value="simple">🔧 Simple JSON</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>JSONPath pour extraire le niveau:</label>
+                                <input type="text" id="editJsonPathLevel" placeholder="object.water_level">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>QoS MQTT niveau:</label>
+                            <select id="editMqttQosLevel">
+                                <option value="0">0 - Au plus une fois</option>
+                                <option value="1">1 - Au moins une fois</option>
+                                <option value="2">2 - Exactement une fois</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Topic Pompe (optionnel) -->
+                    <div class="topic-group pump">
+                        <h4 style="color: #4CAF50; margin-bottom: 10px;">🔧 Topic Pompe (optionnel)</h4>
+                        <div class="form-group">
+                            <label>Topic MQTT pompe:</label>
+                            <input type="text" id="editReservoirPumpTopic">
+                        </div>
+                        
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="editIsJsonPayloadPump">
+                            <label for="editIsJsonPayloadPump">Payload JSON pour la pompe</label>
+                        </div>
+
+                        <div id="editJsonOptionsPump" class="json-options">
+                            <div class="form-group">
+                                <label>Format JSON pompe:</label>
+                                <select id="editJsonFormatPump">
+                                    <option value="chirpstack_receive">📥 ChirpStack Réception</option>
+                                    <option value="chirpstack_send">📤 ChirpStack Envoi</option>
+                                    <option value="simple">🔧 Simple JSON</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>JSONPath pour lire l'état pompe:</label>
+                                <input type="text" id="editJsonPathPump" placeholder="object.pump_status">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>QoS MQTT pompe:</label>
+                            <select id="editMqttQosPump">
+                                <option value="0">0 - Au plus une fois</option>
+                                <option value="1">1 - Au moins une fois</option>
+                                <option value="2">2 - Exactement une fois</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Topic Remplissage (optionnel) -->
+                    <div class="topic-group fill">
+                        <h4 style="color: #FF9800; margin-bottom: 10px;">🔄 Topic Remplissage (optionnel)</h4>
+                        <div class="form-group">
+                            <label>Topic MQTT remplissage:</label>
+                            <input type="text" id="editReservoirFillTopic">
+                        </div>
+                        
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="editIsJsonPayloadFill">
+                            <label for="editIsJsonPayloadFill">Payload JSON pour le remplissage</label>
+                        </div>
+
+                        <div id="editJsonOptionsFill" class="json-options">
+                            <div class="form-group">
+                                <label>Format JSON remplissage:</label>
+                                <select id="editJsonFormatFill">
+                                    <option value="chirpstack_receive">📥 ChirpStack Réception</option>
+                                    <option value="chirpstack_send">📤 ChirpStack Envoi</option>
+                                    <option value="simple">🔧 Simple JSON</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>JSONPath pour lire l'état remplissage:</label>
+                                <input type="text" id="editJsonPathFill" placeholder="object.fill_status">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>QoS MQTT remplissage:</label>
+                            <select id="editMqttQosFill">
+                                <option value="0">0 - Au plus une fois</option>
+                                <option value="1">1 - Au moins une fois</option>
+                                <option value="2">2 - Exactement une fois</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Topic Mode (optionnel) -->
+                    <div class="topic-group mode">
+                        <h4 style="color: #9C27B0; margin-bottom: 10px;">🎛️ Topic Mode Manuel/Automatique (optionnel)</h4>
+                        <div class="form-group">
+                            <label>Topic MQTT mode:</label>
+                            <input type="text" id="editReservoirModeTopic">
+                        </div>
+                        
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="editIsJsonPayloadMode">
+                            <label for="editIsJsonPayloadMode">Payload JSON pour le mode</label>
+                        </div>
+
+                        <div id="editJsonOptionsMode" class="json-options">
+                            <div class="form-group">
+                                <label>Format JSON mode:</label>
+                                <select id="editJsonFormatMode">
+                                    <option value="chirpstack_receive">📥 ChirpStack Réception</option>
+                                    <option value="chirpstack_send">📤 ChirpStack Envoi</option>
+                                    <option value="simple">🔧 Simple JSON</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>JSONPath pour lire le mode:</label>
+                                <input type="text" id="editJsonPathMode" placeholder="object.mode">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>QoS MQTT mode:</label>
+                            <select id="editMqttQosMode">
+                                <option value="0">0 - Au plus une fois</option>
+                                <option value="1">1 - Au moins une fois</option>
+                                <option value="2">2 - Exactement une fois</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Seuil d'alerte bas (%):</label>
+                    <input type="number" id="editReservoirLowThreshold" min="0" max="100">
+                </div>
+                <button type="submit" class="submit-btn">💾 Sauvegarder Réservoir</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modales graphiques (conservées) -->
+    <div id="sensorChartModal" class="modal">
+        <div class="modal-content chart-modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="sensorChartTitle">📈 Graphique Capteur</h2>
+                <button class="close" onclick="closeModal('sensorChartModal')">&times;</button>
+            </div>
+            
+            <div class="chart-controls">
+                <button class="period-btn" data-period="10m">10min</button>
+                <button class="period-btn active" data-period="1h">1h</button>
+                <button class="period-btn" data-period="6h">6h</button>
+                <button class="period-btn" data-period="24h">24h</button>
+                <button class="period-btn" data-period="7d">7j</button>
+                <button class="period-btn" data-period="30d">30j</button>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="sensorChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div id="overviewChartModal" class="modal">
+        <div class="modal-content chart-modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">📈 Vue d'Ensemble - Tous les Capteurs</h2>
+                <button class="close" onclick="closeModal('overviewChartModal')">&times;</button>
+            </div>
+            
+            <div class="chart-controls">
+                <button class="period-btn" data-period="10m">10min</button>
+                <button class="period-btn active" data-period="1h">1h</button>
+                <button class="period-btn" data-period="6h">6h</button>
+                <button class="period-btn" data-period="24h">24h</button>
+                <button class="period-btn" data-period="7d">7j</button>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="overviewChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div id="reservoirChartModal" class="modal">
+        <div class="modal-content chart-modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">📈 Niveaux des Réservoirs</h2>
+                <button class="close" onclick="closeModal('reservoirChartModal')">&times;</button>
+            </div>
+            
+            <div class="chart-controls">
+                <button class="period-btn" data-period="10m">10min</button>
+                <button class="period-btn active" data-period="1h">1h</button>
+                <button class="period-btn" data-period="6h">6h</button>
+                <button class="period-btn" data-period="24h">24h</button>
+                <button class="period-btn" data-period="7d">7j</button>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="reservoirChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="notification"></div>
+
+    <script>
+        // ============================================================================
+        // VARIABLES GLOBALES COMPLÈTES AVEC RÉSERVOIRS CHIRPSTACK
+        // ============================================================================
+        
+        let config = {
+            mqttServer: 'mqtt://192.168.1.100:1883',
+            baseTopic: 'application/+/device/+/event/up',
+            updateInterval: 5000
+        };
+
+        let sensors = [];
+        let reservoirs = [];
+        let sensorHistory = {};
+        let reservoirHistory = {};
+        let currentSection = 'sensors';
+        let socket = null;
+        let currentCharts = {};
+        let chartUpdateIntervals = {};
+
+        const sensorTypes = {
+            temperature: { icon: '🌡️', color: '#FF6B6B', defaultUnit: '°C' },
+            humidity: { icon: '💧', color: '#4ECDC4', defaultUnit: '%' },
+            light: { icon: '☀️', color: '#FFE66D', defaultUnit: 'lux' },
+            ph: { icon: '🧪', color: '#A8E6CF', defaultUnit: 'pH' },
+            moisture: { icon: '🌱', color: '#8FBC8F', defaultUnit: '%' },
+            wind: { icon: '💨', color: '#87CEEB', defaultUnit: 'km/h' },
+            rain: { icon: '🌧️', color: '#6495ED', defaultUnit: 'mm' },
+            pressure: { icon: '📊', color: '#DDA0DD', defaultUnit: 'hPa' },
+            co2: { icon: '🫧', color: '#F0E68C', defaultUnit: 'ppm' },
+            nutrition: { icon: '🌿', color: '#98FB98', defaultUnit: 'EC' },
+            custom: { icon: '🔧', color: '#9E9E9E', defaultUnit: '' }
+        };
+
+        const reservoirTypes = {
+            water: { icon: '💧', color: '#2196F3' },
+            fertilizer: { icon: '🌿', color: '#4CAF50' },
+            pesticide: { icon: '🦟', color: '#FF9800' },
+            nutrition: { icon: '🍃', color: '#8BC34A' },
+            fuel: { icon: '⛽', color: '#607D8B' },
+            acid: { icon: '🧪', color: '#F44336' },
+            base: { icon: '⚗️', color: '#9C27B0' },
+            custom: { icon: '🔧', color: '#9E9E9E' }
+        };
+
+        // Nouveaux formats ChirpStack
+        const jsonFormats = {
+            chirpstack_receive: { name: '📥 ChirpStack Réception', badge: 'chirpstack-badge receive' },
+            chirpstack_send: { name: '📤 ChirpStack Envoi', badge: 'chirpstack-badge send' },
+            simple: { name: '🔧 Simple JSON', badge: 'json-badge' }
+        };
+
+        // ============================================================================
+        // INITIALISATION COMPLÈTE
+        // ============================================================================
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeRealTimeConnection();
+            loadFromServerOrLocal();
+            setupNavigation();
+            setupFormHandlers();
+            setupChartHandlers();
+            renderSensors();
+            renderReservoirs();
+            loadSettings();
+            showNotification('Interface ChirpStack complète chargée', 'success');
+        });
+
+        // ============================================================================
+        // GESTION DES FORMULAIRES COMPLÈTE AVEC CHIRPSTACK
+        // ============================================================================
+
+        function setupFormHandlers() {
+            // Gestionnaires pour checkbox JSON payload (capteurs)
+            document.getElementById('isJsonPayload').addEventListener('change', function() {
+                const jsonOptions = document.getElementById('jsonOptions');
+                if (this.checked) {
+                    jsonOptions.classList.add('show');
+                } else {
+                    jsonOptions.classList.remove('show');
+                }
+            });
+
+            document.getElementById('editIsJsonPayload').addEventListener('change', function() {
+                const jsonOptions = document.getElementById('editJsonOptions');
+                if (this.checked) {
+                    jsonOptions.classList.add('show');
+                } else {
+                    jsonOptions.classList.remove('show');
+                }
+            });
+
+            // Gestionnaires pour checkbox JSON payload (réservoirs)
+            ['Level', 'Pump', 'Fill', 'Mode'].forEach(type => {
+                ['isJsonPayload', 'editIsJsonPayload'].forEach(prefix => {
+                    const checkboxId = prefix + type;
+                    const optionsId = prefix === 'isJsonPayload' ? 'jsonOptions' + type : 'editJsonOptions' + type;
+                    
+                    const checkbox = document.getElementById(checkboxId);
+                    if (checkbox) {
+                        checkbox.addEventListener('change', function() {
+                            const jsonOptions = document.getElementById(optionsId);
+                            if (jsonOptions) {
+                                if (this.checked) {
+                                    jsonOptions.classList.add('show');
+                                } else {
+                                    jsonOptions.classList.remove('show');
+                                }
+                            }
+                        });
+                    }
+                });
+            });
+
+            // Formulaire ajout capteur (amélioré ChirpStack)
+            document.getElementById('addSensorForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = {
+                    name: document.getElementById('sensorName').value,
+                    type: document.getElementById('sensorType').value,
+                    topic: document.getElementById('sensorTopic').value,
+                    unit: document.getElementById('sensorUnit').value,
+                    color: document.getElementById('sensorColor').value,
+                    minValue: document.getElementById('sensorMinValue').value,
+                    maxValue: document.getElementById('sensorMaxValue').value,
+                    customIcon: document.getElementById('customIcon').value,
+                    isJsonPayload: document.getElementById('isJsonPayload').checked,
+                    jsonPath: document.getElementById('jsonPath').value,
+                    jsonFormat: document.getElementById('jsonFormat').value,
+                    showReceivedTimestamp: document.getElementById('showReceivedTimestamp').checked,
+                    mqttQos: parseInt(document.getElementById('mqttQos').value)
+                };
+
+                addSensor(formData);
+                this.reset();
+                document.getElementById('jsonOptions').classList.remove('show');
+                closeModal('addSensorModal');
+            });
+
+            // Formulaire edit capteur (amélioré ChirpStack)
+            document.getElementById('editSensorForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const sensorId = document.getElementById('editSensorId').value;
+                const updateData = {
+                    name: document.getElementById('editSensorName').value,
+                    topic: document.getElementById('editSensorTopic').value,
+                    unit: document.getElementById('editSensorUnit').value,
+                    color: document.getElementById('editSensorColor').value,
+                    minValue: parseFloat(document.getElementById('editSensorMinValue').value) || null,
+                    maxValue: parseFloat(document.getElementById('editSensorMaxValue').value) || null,
+                    isJsonPayload: document.getElementById('editIsJsonPayload').checked,
+                    jsonPath: document.getElementById('editJsonPath').value,
+                    jsonFormat: document.getElementById('editJsonFormat').value,
+                    showReceivedTimestamp: document.getElementById('editShowReceivedTimestamp').checked,
+                    mqttQos: parseInt(document.getElementById('editMqttQos').value)
+                };
+                
+                try {
+                    const response = await fetch(`/api/sensors/${sensorId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(updateData)
+                    });
+
+                    if (response.ok) {
+                        const updatedSensor = await response.json();
+                        const sensorIndex = sensors.findIndex(s => s.id === sensorId);
+                        if (sensorIndex !== -1) {
+                            sensors[sensorIndex] = updatedSensor;
+                        }
+                        renderSensors();
+                        showNotification('Capteur modifié avec succès', 'success');
+                    } else {
+                        throw new Error('Erreur serveur');
+                    }
+                } catch (error) {
+                    console.error('Erreur modification capteur:', error);
+                    showNotification('Erreur lors de la modification', 'error');
+                }
+                
+                closeModal('editSensorModal');
+            });
+
+            // Formulaire ajout réservoir ChirpStack AMÉLIORÉ
+            document.getElementById('addReservoirForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = {
+                    name: document.getElementById('reservoirName').value,
+                    type: document.getElementById('reservoirType').value,
+                    capacity: document.getElementById('reservoirCapacity').value,
+                    color: document.getElementById('reservoirColor').value,
+                    customIcon: document.getElementById('customReservoirIcon').value,
+                    lowThreshold: document.getElementById('reservoirLowThreshold').value,
+                    showReceivedTimestamp: document.getElementById('showReceivedTimestamp').checked,
+                    
+                    // Topic niveau
+                    topic: document.getElementById('reservoirTopic').value,
+                    isJsonPayloadLevel: document.getElementById('isJsonPayloadLevel').checked,
+                    jsonPathLevel: document.getElementById('jsonPathLevel').value,
+                    jsonFormatLevel: document.getElementById('jsonFormatLevel').value,
+                    mqttQosLevel: parseInt(document.getElementById('mqttQosLevel').value),
+                    
+                    // Topic pompe
+                    pumpTopic: document.getElementById('reservoirPumpTopic').value,
+                    isJsonPayloadPump: document.getElementById('isJsonPayloadPump').checked,
+                    jsonPathPump: document.getElementById('jsonPathPump').value,
+                    jsonFormatPump: document.getElementById('jsonFormatPump').value,
+                    mqttQosPump: parseInt(document.getElementById('mqttQosPump').value),
+                    
+                    // Topic remplissage
+                    fillTopic: document.getElementById('reservoirFillTopic').value,
+                    isJsonPayloadFill: document.getElementById('isJsonPayloadFill').checked,
+                    jsonPathFill: document.getElementById('jsonPathFill').value,
+                    jsonFormatFill: document.getElementById('jsonFormatFill').value,
+                    mqttQosFill: parseInt(document.getElementById('mqttQosFill').value),
+                    
+                    // Topic mode
+                    modeTopic: document.getElementById('reservoirModeTopic').value,
+                    isJsonPayloadMode: document.getElementById('isJsonPayloadMode').checked,
+                    jsonPathMode: document.getElementById('jsonPathMode').value,
+                    jsonFormatMode: document.getElementById('jsonFormatMode').value,
+                    mqttQosMode: parseInt(document.getElementById('mqttQosMode').value)
+                };
+
+                addReservoir(formData);
+                this.reset();
+                // Les checkboxes sont cochées par défaut, donc afficher les options JSON
+                ['Level', 'Pump', 'Fill', 'Mode'].forEach(type => {
+                    document.getElementById('jsonOptions' + type).classList.add('show');
+                });
+                closeModal('addReservoirModal');
+            });
+
+            // Formulaire edit réservoir ChirpStack AMÉLIORÉ
+            document.getElementById('editReservoirForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const reservoirId = document.getElementById('editReservoirId').value;
+                const updateData = {
+                    name: document.getElementById('editReservoirName').value,
+                    capacity: parseInt(document.getElementById('editReservoirCapacity').value),
+                    color: document.getElementById('editReservoirColor').value,
+                    lowThreshold: parseInt(document.getElementById('editReservoirLowThreshold').value),
+                    showReceivedTimestamp: document.getElementById('editShowReceivedTimestamp').checked,
+                    
+                    // Topic niveau
+                    topic: document.getElementById('editReservoirTopic').value,
+                    isJsonPayloadLevel: document.getElementById('editIsJsonPayloadLevel').checked,
+                    jsonPathLevel: document.getElementById('editJsonPathLevel').value,
+                    jsonFormatLevel: document.getElementById('editJsonFormatLevel').value,
+                    mqttQosLevel: parseInt(document.getElementById('editMqttQosLevel').value),
+                    
+                    // Topic pompe
+                    pumpTopic: document.getElementById('editReservoirPumpTopic').value,
+                    isJsonPayloadPump: document.getElementById('editIsJsonPayloadPump').checked,
+                    jsonPathPump: document.getElementById('editJsonPathPump').value,
+                    jsonFormatPump: document.getElementById('editJsonFormatPump').value,
+                    mqttQosPump: parseInt(document.getElementById('editMqttQosPump').value),
+                    
+                    // Topic remplissage
+                    fillTopic: document.getElementById('editReservoirFillTopic').value,
+                    isJsonPayloadFill: document.getElementById('editIsJsonPayloadFill').checked,
+                    jsonPathFill: document.getElementById('editJsonPathFill').value,
+                    jsonFormatFill: document.getElementById('editJsonFormatFill').value,
+                    mqttQosFill: parseInt(document.getElementById('editMqttQosFill').value),
+                    
+                    // Topic mode
+                    modeTopic: document.getElementById('editReservoirModeTopic').value,
+                    isJsonPayloadMode: document.getElementById('editIsJsonPayloadMode').checked,
+                    jsonPathMode: document.getElementById('editJsonPathMode').value,
+                    jsonFormatMode: document.getElementById('editJsonFormatMode').value,
+                    mqttQosMode: parseInt(document.getElementById('editMqttQosMode').value)
+                };
+                
+                try {
+                    const response = await fetch(`/api/reservoirs/${reservoirId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(updateData)
+                    });
+
+                    if (response.ok) {
+                        const updatedReservoir = await response.json();
+                        const reservoirIndex = reservoirs.findIndex(r => r.id === reservoirId);
+                        if (reservoirIndex !== -1) {
+                            reservoirs[reservoirIndex] = updatedReservoir;
+                        }
+                        renderReservoirs();
+                        showNotification('Réservoir modifié avec succès', 'success');
+                    } else {
+                        throw new Error('Erreur serveur');
+                    }
+                } catch (error) {
+                    console.error('Erreur modification réservoir:', error);
+                    showNotification('Erreur lors de la modification', 'error');
+                }
+                
+                closeModal('editReservoirModal');
+            });
+
+            // Gestionnaires pour types (conservés)
+            document.getElementById('sensorType').addEventListener('change', function() {
+                const type = this.value;
+                const customGroup = document.getElementById('customTypeGroup');
+                const unitField = document.getElementById('sensorUnit');
+                const colorField = document.getElementById('sensorColor');
+                
+                if (type === 'custom') {
+                    customGroup.style.display = 'block';
+                } else {
+                    customGroup.style.display = 'none';
+                    if (type && sensorTypes[type]) {
+                        unitField.value = sensorTypes[type].defaultUnit;
+                        colorField.value = sensorTypes[type].color;
+                    }
+                }
+            });
+
+            document.getElementById('reservoirType').addEventListener('change', function() {
+                const type = this.value;
+                const customGroup = document.getElementById('customReservoirGroup');
+                const colorField = document.getElementById('reservoirColor');
+                
+                if (type === 'custom') {
+                    customGroup.style.display = 'block';
+                } else {
+                    customGroup.style.display = 'none';
+                    if (type && reservoirTypes[type]) {
+                        colorField.value = reservoirTypes[type].color;
+                    }
+                }
+            });
+        }
+
+        // ============================================================================
+        // RENDU DES CAPTEURS AVEC SUPPORT CHIRPSTACK COMPLET
+        // ============================================================================
+
+        function renderSensors() {
+            const grid = document.getElementById('sensorsGrid');
+            
+            if (sensors.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📊</div>
+                        <h3>Aucun capteur configuré</h3>
+                        <p>Commencez par ajouter votre premier capteur ChirpStack</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = sensors.map(sensor => {
+                // Badge de format JSON
+                let formatBadge = '';
+                if (sensor.isJsonPayload) {
+                    const format = jsonFormats[sensor.jsonFormat] || jsonFormats['simple'];
+                    formatBadge = `<div class="${format.badge}">${format.name}</div>`;
+                    if (sensor.jsonPath) {
+                        formatBadge += `<div class="jsonpath-info">${sensor.jsonPath}</div>`;
+                    }
+                } else {
+                    formatBadge = '<div class="normal-badge">NORMAL</div>';
+                }
+
+                return `
+                    <div class="sensor-card" style="--card-color: ${sensor.color}">
+                        <div class="sensor-header">
+                            <div class="sensor-info">
+                                <div class="sensor-icon">${sensor.icon}</div>
+                                <div class="sensor-details">
+                                    <h3>${sensor.name}</h3>
+                                    <div class="sensor-type">${sensor.topic}</div>
+                                    ${formatBadge}
+                                    ${sensor.mqttQos !== undefined ? `
+                                        <div style="font-size: 0.7em; color: #666; margin-top: 3px;">QoS: ${sensor.mqttQos}</div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                            <div class="card-actions">
+                                <button class="chart-btn-small" onclick="openSensorChart('${sensor.id}')" title="Graphique">
+                                    📈
+                                </button>
+                                <button class="action-btn-small" onclick="editSensor('${sensor.id}')" title="Modifier">
+                                    ✏️
+                                </button>
+                                <button class="action-btn-small" onclick="deleteSensor('${sensor.id}')" title="Supprimer">
+                                    🗑️
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="sensor-value">
+                            <div class="value-display" id="sensor-value-${sensor.id}">
+                                ${sensor.value || 0}
+                            </div>
+                            <div class="value-unit">${sensor.unit}</div>
+                        </div>
+                        
+                        <div class="sensor-status">
+                            <div class="status-badge status-${sensor.status}" id="sensor-status-${sensor.id}">
+                                ${getStatusText(sensor.status)}
+                            </div>
+                            <div class="last-update" id="sensor-time-${sensor.id}">
+                                ${formatTime(sensor.lastUpdate)}
+                                ${sensor.showReceivedTimestamp && sensor.receivedTimestamp ? `<br><small>Reçu: ${formatTime(sensor.receivedTimestamp)}</small>` : ''}
+                            </div>
+                        </div>
+                        
+                        ${sensor.minValue !== null || sensor.maxValue !== null ? `
+                            <div style="margin-top: 10px; font-size: 0.75em; color: #666; text-align: center;">
+                                ${sensor.minValue !== null ? `Min: ${sensor.minValue}${sensor.unit}` : ''}
+                                ${sensor.minValue !== null && sensor.maxValue !== null ? ' | ' : ''}
+                                ${sensor.maxValue !== null ? `Max: ${sensor.maxValue}${sensor.unit}` : ''}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ============================================================================
+        // RENDU DES RÉSERVOIRS AVEC SUPPORT CHIRPSTACK COMPLET
+        // ============================================================================
+
+        function renderReservoirs() {
+            const grid = document.getElementById('reservoirsGrid');
+            
+            if (reservoirs.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🫗</div>
+                        <h3>Aucun réservoir configuré</h3>
+                        <p>Commencez par ajouter votre premier réservoir ChirpStack</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = reservoirs.map(reservoir => {
+                // Construire l'affichage des configurations JSON ChirpStack
+                let topicConfig = '';
+                
+                // Niveau
+                const levelFormat = jsonFormats[reservoir.jsonFormatLevel] || jsonFormats['chirpstack_receive'];
+                topicConfig += `
+                    <div class="topic-line">📊 Niveau: ${reservoir.isJsonPayloadLevel ? levelFormat.name.replace('📥 ', '').replace('📤 ', '') : 'Normal'} (QoS: ${reservoir.mqttQosLevel})</div>
+                `;
+                if (reservoir.isJsonPayloadLevel && reservoir.jsonPathLevel) {
+                    topicConfig += `<div class="topic-line jsonpath-info">   Path: ${reservoir.jsonPathLevel}</div>`;
+                }
+                
+                // Pompe
+                if (reservoir.pumpTopic) {
+                    const pumpFormat = jsonFormats[reservoir.jsonFormatPump] || jsonFormats['chirpstack_send'];
+                    topicConfig += `
+                        <div class="topic-line">🔧 Pompe: ${reservoir.isJsonPayloadPump ? pumpFormat.name.replace('📥 ', '').replace('📤 ', '') : 'Normal'} (QoS: ${reservoir.mqttQosPump})</div>
+                    `;
+                    if (reservoir.isJsonPayloadPump && reservoir.jsonPathPump) {
+                        topicConfig += `<div class="topic-line jsonpath-info">   Path: ${reservoir.jsonPathPump}</div>`;
+                    }
+                }
+                
+                // Remplissage
+                if (reservoir.fillTopic) {
+                    const fillFormat = jsonFormats[reservoir.jsonFormatFill] || jsonFormats['chirpstack_send'];
+                    topicConfig += `
+                        <div class="topic-line">🔄 Remplissage: ${reservoir.isJsonPayloadFill ? fillFormat.name.replace('📥 ', '').replace('📤 ', '') : 'Normal'} (QoS: ${reservoir.mqttQosFill})</div>
+                    `;
+                    if (reservoir.isJsonPayloadFill && reservoir.jsonPathFill) {
+                        topicConfig += `<div class="topic-line jsonpath-info">   Path: ${reservoir.jsonPathFill}</div>`;
+                    }
+                }
+                
+                // Mode
+                if (reservoir.modeTopic) {
+                    const modeFormat = jsonFormats[reservoir.jsonFormatMode] || jsonFormats['chirpstack_send'];
+                    topicConfig += `
+                        <div class="topic-line">🎛️ Mode: ${reservoir.isJsonPayloadMode ? modeFormat.name.replace('📥 ', '').replace('📤 ', '') : 'Normal'} (QoS: ${reservoir.mqttQosMode})</div>
+                    `;
+                    if (reservoir.isJsonPayloadMode && reservoir.jsonPathMode) {
+                        topicConfig += `<div class="topic-line jsonpath-info">   Path: ${reservoir.jsonPathMode}</div>`;
+                    }
+                }
+
+                return `
+                    <div class="reservoir-card" style="--card-color: ${reservoir.color}">
+                        <div class="reservoir-header">
+                            <div class="reservoir-info">
+                                <div class="reservoir-icon">${reservoir.icon}</div>
+                                <div class="reservoir-details">
+                                    <h3>${reservoir.name}</h3>
+                                    <div class="reservoir-type">${reservoir.topic}</div>
+                                    <div style="margin-top: 8px;">
+                                        <div class="mode-badge ${reservoir.isAutoMode ? 'auto' : 'manual'}">
+                                            ${reservoir.isAutoMode ? '🤖 AUTO' : '👤 MANUEL'}
+                                        </div>
+                                        ${reservoir.showReceivedTimestamp ? '<div class="json-badge">TIMESTAMP</div>' : ''}
+                                        <div class="chirpstack-badge">🌐 CHIRPSTACK</div>
+                                    </div>
+                                    <div class="topic-config">
+                                        ${topicConfig}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-actions">
+                                ${reservoir.modeTopic ? `
+                                    <button class="mode-btn-small" onclick="toggleMode('${reservoir.id}')" title="Basculer Mode">
+                                        🎛️
+                                    </button>
+                                ` : ''}
+                                <button class="action-btn-small" onclick="editReservoir('${reservoir.id}')" title="Modifier">
+                                    ✏️
+                                </button>
+                                <button class="action-btn-small" onclick="deleteReservoir('${reservoir.id}')" title="Supprimer">
+                                    🗑️
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="reservoir-visual">
+                            <div class="reservoir-fill" id="reservoir-fill-${reservoir.id}" 
+                                 style="height: ${reservoir.currentLevel || 50}%;">
+                            </div>
+                        </div>
+                        
+                        <div class="reservoir-level-text">
+                            <div class="level-percentage" id="reservoir-level-${reservoir.id}">
+                                ${(reservoir.currentLevel || 50).toFixed(1)}%
+                            </div>
+                            <div class="level-volume">
+                                ${Math.round((reservoir.currentLevel || 50) * reservoir.capacity / 100)}L / ${reservoir.capacity}L
+                            </div>
+                        </div>
+                        
+                        <div class="reservoir-status">
+                            <div class="status-badge ${(reservoir.currentLevel || 50) <= reservoir.lowThreshold ? 'status-warning' : 'status-online'}">
+                                ${(reservoir.currentLevel || 50) <= reservoir.lowThreshold ? 'Niveau Bas' : 'Normal'}
+                            </div>
+                            <div class="last-update" id="reservoir-time-${reservoir.id}">
+                                ${formatTime(reservoir.lastUpdate)}
+                                ${reservoir.showReceivedTimestamp && reservoir.receivedTimestamp ? `<br><small>Reçu: ${formatTime(reservoir.receivedTimestamp)}</small>` : ''}
+                            </div>
+                        </div>
+                        
+                        <div class="reservoir-controls">
+                            ${reservoir.pumpTopic ? `
+                                <button class="control-btn pump-btn ${reservoir.pumpStatus ? '' : 'stopped'}" 
+                                        onclick="togglePump('${reservoir.id}')" id="pump-btn-${reservoir.id}">
+                                    ${reservoir.pumpStatus ? '⏹️ Arrêter' : '▶️ Démarrer'}
+                                </button>
+                            ` : ''}
+                            <button class="control-btn fill-btn" onclick="fillReservoir('${reservoir.id}')">
+                                🔄 Remplir
+                            </button>
+                            ${reservoir.modeTopic ? `
+                                <button class="control-btn mode-btn ${reservoir.isAutoMode ? '' : 'manual'}" 
+                                        onclick="toggleMode('${reservoir.id}')" id="mode-btn-${reservoir.id}">
+                                    ${reservoir.isAutoMode ? '🤖 Auto' : '👤 Manuel'}
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ============================================================================
+        // NOUVELLES FONCTIONS POUR RÉSERVOIRS CHIRPSTACK
+        // ============================================================================
+
+        async function toggleMode(reservoirId) {
+            const reservoir = reservoirs.find(r => r.id === reservoirId);
+            if (!reservoir) return;
+
+            if (!reservoir.modeTopic) {
+                showNotification('⚠️ Aucun topic de mode configuré', 'warning');
+                return;
+            }
+
+            try {
+                const newMode = reservoir.isAutoMode ? 'manual' : 'auto';
+                const response = await fetch(`/api/reservoirs/${reservoirId}/mode`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode: newMode })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    reservoir.isAutoMode = result.isAutoMode;
+                    updateReservoirDisplay(reservoir);
+                    
+                    const modeText = result.isAutoMode ? 'automatique' : 'manuel';
+                    showNotification(`Mode ${reservoir.name} basculé en ${modeText}`, 'success');
+                } else {
+                    throw new Error('Erreur serveur');
+                }
+            } catch (error) {
+                console.error('Erreur basculement mode:', error);
+                showNotification('Erreur basculement mode', 'error');
+            }
+        }
+
+        async function addSensor(sensorData) {
+            try {
+                let typeData, icon, color;
+                
+                if (sensorData.type === 'custom') {
+                    icon = sensorData.customIcon || '🔧';
+                    color = sensorData.color || '#9E9E9E';
+                } else {
+                    typeData = sensorTypes[sensorData.type];
+                    icon = typeData.icon;
+                    color = sensorData.color || typeData.color;
+                }
+                
+                const sensor = {
+                    name: sensorData.name,
+                    type: sensorData.type,
+                    topic: sensorData.topic,
+                    unit: sensorData.unit || (typeData ? typeData.defaultUnit : ''),
+                    minValue: parseFloat(sensorData.minValue) || null,
+                    maxValue: parseFloat(sensorData.maxValue) || null,
+                    icon: icon,
+                    color: color,
+                    isJsonPayload: sensorData.isJsonPayload || false,
+                    jsonPath: sensorData.jsonPath || '',
+                    jsonFormat: sensorData.jsonFormat || 'chirpstack_receive',
+                    showReceivedTimestamp: sensorData.showReceivedTimestamp || false,
+                    mqttQos: sensorData.mqttQos || 1
+                };
+
+                const response = await fetch('/api/sensors', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(sensor)
+                });
+
+                if (response.ok) {
+                    const newSensor = await response.json();
+                    sensors.push(newSensor);
+                    renderSensors();
+                    showNotification(`Capteur "${newSensor.name}" ajouté avec succès`, 'success');
+                } else {
+                    throw new Error('Erreur serveur');
+                }
+            } catch (error) {
+                console.error('Erreur ajout capteur:', error);
+                showNotification('Erreur lors de l\'ajout du capteur', 'error');
+            }
+        }
+
+        async function addReservoir(reservoirData) {
+            try {
+                let typeData, icon, color;
+                
+                if (reservoirData.type === 'custom') {
+                    icon = reservoirData.customIcon || '🔧';
+                    color = reservoirData.color || '#9E9E9E';
+                } else {
+                    typeData = reservoirTypes[reservoirData.type];
+                    icon = typeData.icon;
+                    color = reservoirData.color || typeData.color;
+                }
+                
+                const reservoir = {
+                    name: reservoirData.name,
+                    type: reservoirData.type,
+                    capacity: parseInt(reservoirData.capacity),
+                    lowThreshold: parseInt(reservoirData.lowThreshold) || 20,
+                    icon: icon,
+                    color: color,
+                    showReceivedTimestamp: reservoirData.showReceivedTimestamp || false,
+                    
+                    // Topic niveau
+                    topic: reservoirData.topic,
+                    isJsonPayloadLevel: reservoirData.isJsonPayloadLevel || false,
+                    jsonPathLevel: reservoirData.jsonPathLevel || '',
+                    jsonFormatLevel: reservoirData.jsonFormatLevel || 'chirpstack_receive',
+                    mqttQosLevel: reservoirData.mqttQosLevel || 1,
+                    
+                    // Topic pompe
+                    pumpTopic: reservoirData.pumpTopic || '',
+                    isJsonPayloadPump: reservoirData.isJsonPayloadPump || false,
+                    jsonPathPump: reservoirData.jsonPathPump || '',
+                    jsonFormatPump: reservoirData.jsonFormatPump || 'chirpstack_send',
+                    mqttQosPump: reservoirData.mqttQosPump || 1,
+                    
+                    // Topic remplissage
+                    fillTopic: reservoirData.fillTopic || '',
+                    isJsonPayloadFill: reservoirData.isJsonPayloadFill || false,
+                    jsonPathFill: reservoirData.jsonPathFill || '',
+                    jsonFormatFill: reservoirData.jsonFormatFill || 'chirpstack_send',
+                    mqttQosFill: reservoirData.mqttQosFill || 1,
+                    
+                    // Topic mode
+                    modeTopic: reservoirData.modeTopic || '',
+                    isJsonPayloadMode: reservoirData.isJsonPayloadMode || false,
+                    jsonPathMode: reservoirData.jsonPathMode || '',
+                    jsonFormatMode: reservoirData.jsonFormatMode || 'chirpstack_send',
+                    mqttQosMode: reservoirData.mqttQosMode || 1
+                };
+
+                const response = await fetch('/api/reservoirs', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(reservoir)
+                });
+
+                if (response.ok) {
+                    const newReservoir = await response.json();
+                    reservoirs.push(newReservoir);
+                    renderReservoirs();
+                    showNotification(`Réservoir "${newReservoir.name}" ajouté avec succès`, 'success');
+                } else {
+                    throw new Error('Erreur serveur');
+                }
+            } catch (error) {
+                console.error('Erreur ajout réservoir:', error);
+                showNotification('Erreur lors de l\'ajout du réservoir', 'error');
+            }
+        }
+
+        async function editSensor(sensorId) {
+            const sensor = sensors.find(s => s.id === sensorId);
+            if (!sensor) return;
+
+            document.getElementById('editSensorId').value = sensor.id;
+            document.getElementById('editSensorName').value = sensor.name;
+            document.getElementById('editSensorTopic').value = sensor.topic;
+            document.getElementById('editSensorUnit').value = sensor.unit;
+            document.getElementById('editSensorColor').value = sensor.color;
+            document.getElementById('editSensorMinValue').value = sensor.minValue || '';
+            document.getElementById('editSensorMaxValue').value = sensor.maxValue || '';
+
+            document.getElementById('editIsJsonPayload').checked = sensor.isJsonPayload || false;
+            document.getElementById('editJsonPath').value = sensor.jsonPath || '';
+            document.getElementById('editJsonFormat').value = sensor.jsonFormat || 'chirpstack_receive';
+            document.getElementById('editShowReceivedTimestamp').checked = sensor.showReceivedTimestamp || false;
+            document.getElementById('editMqttQos').value = sensor.mqttQos || 1;
+
+            const jsonOptions = document.getElementById('editJsonOptions');
+            if (sensor.isJsonPayload) {
+                jsonOptions.classList.add('show');
+            } else {
+                jsonOptions.classList.remove('show');
+            }
+
+            document.getElementById('editSensorModal').style.display = 'block';
+        }
+
+        async function editReservoir(reservoirId) {
+            const reservoir = reservoirs.find(r => r.id === reservoirId);
+            if (!reservoir) return;
+
+            document.getElementById('editReservoirId').value = reservoir.id;
+            document.getElementById('editReservoirName').value = reservoir.name;
+            document.getElementById('editReservoirCapacity').value = reservoir.capacity;
+            document.getElementById('editReservoirColor').value = reservoir.color;
+            document.getElementById('editReservoirLowThreshold').value = reservoir.lowThreshold;
+            document.getElementById('editShowReceivedTimestamp').checked = reservoir.showReceivedTimestamp || false;
+
+            // Configuration topic niveau
+            document.getElementById('editReservoirTopic').value = reservoir.topic;
+            document.getElementById('editIsJsonPayloadLevel').checked = reservoir.isJsonPayloadLevel || false;
+            document.getElementById('editJsonPathLevel').value = reservoir.jsonPathLevel || '';
+            document.getElementById('editJsonFormatLevel').value = reservoir.jsonFormatLevel || 'chirpstack_receive';
+            document.getElementById('editMqttQosLevel').value = reservoir.mqttQosLevel || 1;
+
+            // Configuration topic pompe
+            document.getElementById('editReservoirPumpTopic').value = reservoir.pumpTopic || '';
+            document.getElementById('editIsJsonPayloadPump').checked = reservoir.isJsonPayloadPump || false;
+            document.getElementById('editJsonPathPump').value = reservoir.jsonPathPump || '';
+            document.getElementById('editJsonFormatPump').value = reservoir.jsonFormatPump || 'chirpstack_send';
+            document.getElementById('editMqttQosPump').value = reservoir.mqttQosPump || 1;
+
+            // Configuration topic remplissage
+            document.getElementById('editReservoirFillTopic').value = reservoir.fillTopic || '';
+            document.getElementById('editIsJsonPayloadFill').checked = reservoir.isJsonPayloadFill || false;
+            document.getElementById('editJsonPathFill').value = reservoir.jsonPathFill || '';
+            document.getElementById('editJsonFormatFill').value = reservoir.jsonFormatFill || 'chirpstack_send';
+            document.getElementById('editMqttQosFill').value = reservoir.mqttQosFill || 1;
+
+            // Configuration topic mode
+            document.getElementById('editReservoirModeTopic').value = reservoir.modeTopic || '';
+            document.getElementById('editIsJsonPayloadMode').checked = reservoir.isJsonPayloadMode || false;
+            document.getElementById('editJsonPathMode').value = reservoir.jsonPathMode || '';
+            document.getElementById('editJsonFormatMode').value = reservoir.jsonFormatMode || 'chirpstack_send';
+            document.getElementById('editMqttQosMode').value = reservoir.mqttQosMode || 1;
+
+            // Afficher les options JSON si nécessaire
+            ['Level', 'Pump', 'Fill', 'Mode'].forEach(type => {
+                const checkbox = document.getElementById('editIsJsonPayload' + type);
+                const jsonOptions = document.getElementById('editJsonOptions' + type);
+                if (checkbox && jsonOptions) {
+                    if (checkbox.checked) {
+                        jsonOptions.classList.add('show');
+                    } else {
+                        jsonOptions.classList.remove('show');
+                    }
+                }
+            });
+
+            document.getElementById('editReservoirModal').style.display = 'block';
+        }
+
+        function updateReservoirDisplay(reservoir) {
+            const fillEl = document.getElementById(`reservoir-fill-${reservoir.id}`);
+            const levelEl = document.getElementById(`reservoir-level-${reservoir.id}`);
+            const timeEl = document.getElementById(`reservoir-time-${reservoir.id}`);
+            const pumpEl = document.getElementById(`pump-btn-${reservoir.id}`);
+            const modeEl = document.getElementById(`mode-btn-${reservoir.id}`);
+
+            if (fillEl) fillEl.style.height = `${reservoir.currentLevel}%`;
+            if (levelEl) levelEl.textContent = `${reservoir.currentLevel.toFixed(1)}%`;
+            
+            if (timeEl) {
+                let timeText = formatTime(reservoir.lastUpdate);
+                if (reservoir.showReceivedTimestamp && reservoir.receivedTimestamp) {
+                    timeText += `<br><small>Reçu: ${formatTime(reservoir.receivedTimestamp)}</small>`;
+                }
+                timeEl.innerHTML = timeText;
+            }
+            
+            if (pumpEl) {
+                pumpEl.className = `control-btn pump-btn ${reservoir.pumpStatus ? '' : 'stopped'}`;
+                pumpEl.textContent = reservoir.pumpStatus ? '⏹️ Arrêter' : '▶️ Démarrer';
+            }
+            
+            if (modeEl) {
+                modeEl.className = `control-btn mode-btn ${reservoir.isAutoMode ? '' : 'manual'}`;
+                modeEl.textContent = reservoir.isAutoMode ? '🤖 Auto' : '👤 Manuel';
+            }
+        }
+
+        // ============================================================================
+        // GESTION DES GRAPHIQUES COMPLÈTE (CONSERVÉE)
+        // ============================================================================
+
+        function setupChartHandlers() {
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('period-btn')) {
+                    e.target.parentNode.querySelectorAll('.period-btn').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    
+                    e.target.classList.add('active');
+                    
+                    const period = e.target.getAttribute('data-period');
+                    const modalId = e.target.closest('.modal').id;
+                    
+                    if (modalId === 'sensorChartModal') {
+                        updateSensorChart(period);
+                    } else if (modalId === 'overviewChartModal') {
+                        updateOverviewChart(period);
+                    } else if (modalId === 'reservoirChartModal') {
+                        updateReservoirChart(period);
+                    }
+                }
+            });
+        }
+
+        async function openSensorChart(sensorId) {
+            const sensor = sensors.find(s => s.id === sensorId);
+            if (!sensor) return;
+
+            document.getElementById('sensorChartTitle').textContent = `📈 ${sensor.name}`;
+            document.getElementById('sensorChartModal').style.display = 'block';
+            
+            document.querySelectorAll('#sensorChartModal .period-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector('#sensorChartModal .period-btn[data-period="1h"]').classList.add('active');
+            
+            await loadSensorChart(sensorId, '1h');
+        }
+
+        async function loadSensorChart(sensorId, period = '1h') {
+            try {
+                showChartLoading('sensorChart');
+                
+                const response = await fetch(`/api/sensors/${sensorId}/history?period=${period}&points=100`);
+                if (!response.ok) throw new Error('Erreur API');
+                
+                const data = await response.json();
+                createSensorChart(data, period);
+                
+                currentCharts.sensorId = sensorId;
+                
+                if (chartUpdateIntervals.sensor) {
+                    clearInterval(chartUpdateIntervals.sensor);
+                }
+                
+                chartUpdateIntervals.sensor = setInterval(() => {
+                    updateSensorChart(period);
+                }, 10000);
+                
+            } catch (error) {
+                console.error('Erreur chargement graphique capteur:', error);
+                showNotification('Erreur chargement graphique', 'error');
+            }
+        }
+
+        function createSensorChart(data, period) {
+            const ctx = document.getElementById('sensorChart').getContext('2d');
+            
+            if (currentCharts.sensor) {
+                currentCharts.sensor.destroy();
+            }
+            
+            const chartData = {
+                labels: data.data.map(point => point.formattedTime),
+                datasets: [{
+                    label: `${data.sensor.name} (${data.sensor.unit})`,
+                    data: data.data.map(point => point.value),
+                    borderColor: data.sensor.color,
+                    backgroundColor: data.sensor.color + '20',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: data.sensor.color,
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }]
+            };
+            
+            const options = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleFont: {
+                            size: 14,
+                            weight: 'bold'
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.dataset.label}: ${context.parsed.y} ${data.sensor.unit}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        },
+                        ticks: {
+                            font: {
+                                size: 12
+                            },
+                            callback: function(value) {
+                                return value + ' ' + data.sensor.unit;
+                            }
+                        }
+                    },
+                    x: {
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        },
+                        ticks: {
+                            font: {
+                                size: 12
+                            },
+                            maxTicksLimit: 10
+                        }
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                },
+                animation: {
+                    duration: 750,
+                    easing: 'easeInOutQuart'
+                }
+            };
+            
+            currentCharts.sensor = new Chart(ctx, {
+                type: 'line',
+                data: chartData,
+                options: options
+            });
+        }
+
+        async function updateSensorChart(period) {
+            if (!currentCharts.sensorId) return;
+            
+            try {
+                const response = await fetch(`/api/sensors/${currentCharts.sensorId}/history?period=${period}&points=100`);
+                if (!response.ok) throw new Error('Erreur API');
+                
+                const data = await response.json();
+                
+                if (currentCharts.sensor) {
+                    currentCharts.sensor.data.labels = data.data.map(point => point.formattedTime);
+                    currentCharts.sensor.data.datasets[0].data = data.data.map(point => point.value);
+                    currentCharts.sensor.update('quiet');
+                }
+            } catch (error) {
+                console.error('Erreur mise à jour graphique:', error);
+            }
+        }
+
+        async function openOverviewChart() {
+            document.getElementById('overviewChartModal').style.display = 'block';
+            
+            document.querySelectorAll('#overviewChartModal .period-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector('#overviewChartModal .period-btn[data-period="1h"]').classList.add('active');
+            
+            await loadOverviewChart('1h');
+        }
+
+        async function loadOverviewChart(period = '1h') {
+            try {
+                showChartLoading('overviewChart');
+                
+                const sensorIds = sensors.map(s => s.id).join(',');
+                if (!sensorIds) {
+                    showNotification('Aucun capteur disponible', 'warning');
+                    return;
+                }
+                
+                const response = await fetch(`/api/charts/sensors/compare?ids=${sensorIds}&period=${period}&points=50`);
+                if (!response.ok) throw new Error('Erreur API');
+                
+                const data = await response.json();
+                createOverviewChart(data, period);
+                
+                if (chartUpdateIntervals.overview) {
+                    clearInterval(chartUpdateIntervals.overview);
+                }
+                
+                chartUpdateIntervals.overview = setInterval(() => {
+                    updateOverviewChart(period);
+                }, 15000);
+                
+            } catch (error) {
+                console.error('Erreur chargement vue d\'ensemble:', error);
+                showNotification('Erreur chargement vue d\'ensemble', 'error');
+            }
+        }
+
+        function createOverviewChart(data, period) {
+            const ctx = document.getElementById('overviewChart').getContext('2d');
+            
+            if (currentCharts.overview) {
+                currentCharts.overview.destroy();
+            }
+            
+            const datasets = data.sensors.map(sensorData => ({
+                label: `${sensorData.sensor.name} (${sensorData.sensor.unit})`,
+                data: sensorData.data.map(point => point.value),
+                borderColor: sensorData.sensor.color,
+                backgroundColor: sensorData.sensor.color + '20',
+                borderWidth: 2,
+                fill: false,
+                tension: 0.4,
+                pointRadius: 2,
+                pointHoverRadius: 4
+            }));
+            
+            const chartData = {
+                labels: data.sensors[0]?.data.map(point => point.formattedTime) || [],
+                datasets: datasets
+            };
+            
+            const options = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            font: {
+                                size: 12
+                            },
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        },
+                        ticks: {
+                            font: {
+                                size: 11
+                            }
+                        }
+                    },
+                    x: {
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        },
+                        ticks: {
+                            font: {
+                                size: 11
+                            },
+                            maxTicksLimit: 8
+                        }
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                }
+            };
+            
+            currentCharts.overview = new Chart(ctx, {
+                type: 'line',
+                data: chartData,
+                options: options
+            });
+        }
+
+        async function updateOverviewChart(period) {
+            const sensorIds = sensors.map(s => s.id).join(',');
+            if (!sensorIds) return;
+            
+            try {
+                const response = await fetch(`/api/charts/sensors/compare?ids=${sensorIds}&period=${period}&points=50`);
+                if (!response.ok) throw new Error('Erreur API');
+                
+                const data = await response.json();
+                
+                if (currentCharts.overview && data.sensors.length > 0) {
+                    currentCharts.overview.data.labels = data.sensors[0].data.map(point => point.formattedTime);
+                    
+                    data.sensors.forEach((sensorData, index) => {
+                        if (currentCharts.overview.data.datasets[index]) {
+                            currentCharts.overview.data.datasets[index].data = sensorData.data.map(point => point.value);
+                        }
+                    });
+                    
+                    currentCharts.overview.update('quiet');
+                }
+            } catch (error) {
+                console.error('Erreur mise à jour vue d\'ensemble:', error);
+            }
+        }
+
+        async function openReservoirChart() {
+            document.getElementById('reservoirChartModal').style.display = 'block';
+            
+            document.querySelectorAll('#reservoirChartModal .period-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector('#reservoirChartModal .period-btn[data-period="1h"]').classList.add('active');
+            
+            await loadReservoirChart('1h');
+        }
+
+        async function loadReservoirChart(period = '1h') {
+            try {
+                showChartLoading('reservoirChart');
+                
+                if (reservoirs.length === 0) {
+                    showNotification('Aucun réservoir disponible', 'warning');
+                    return;
+                }
+                
+                const reservoirPromises = reservoirs.map(reservoir =>
+                    fetch(`/api/reservoirs/${reservoir.id}/history?period=${period}&points=50`)
+                        .then(response => response.json())
+                );
+                
+                const reservoirData = await Promise.all(reservoirPromises);
+                createReservoirChart(reservoirData, period);
+                
+                if (chartUpdateIntervals.reservoir) {
+                    clearInterval(chartUpdateIntervals.reservoir);
+                }
+                
+                chartUpdateIntervals.reservoir = setInterval(() => {
+                    updateReservoirChart(period);
+                }, 15000);
+                
+            } catch (error) {
+                console.error('Erreur chargement graphiques réservoirs:', error);
+                showNotification('Erreur chargement graphiques réservoirs', 'error');
+            }
+        }
+
+        function createReservoirChart(reservoirDataArray, period) {
+            const ctx = document.getElementById('reservoirChart').getContext('2d');
+            
+            if (currentCharts.reservoir) {
+                currentCharts.reservoir.destroy();
+            }
+            
+            const datasets = reservoirDataArray.map(reservoirData => ({
+                label: `${reservoirData.reservoir.name} (${reservoirData.reservoir.capacity}L)`,
+                data: reservoirData.data.map(point => point.value),
+                borderColor: reservoirData.reservoir.color,
+                backgroundColor: reservoirData.reservoir.color + '20',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 3,
+                pointHoverRadius: 5
+            }));
+            
+            const chartData = {
+                labels: reservoirDataArray[0]?.data.map(point => point.formattedTime) || [],
+                datasets: datasets
+            };
+            
+            const options = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.dataset.label}: ${context.parsed.y.toFixed(1)}%`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    },
+                    x: {
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)'
+                        },
+                        ticks: {
+                            maxTicksLimit: 8
+                        }
+                    }
+                }
+            };
+            
+            currentCharts.reservoir = new Chart(ctx, {
+                type: 'line',
+                data: chartData,
+                options: options
+            });
+        }
+
+        async function updateReservoirChart(period) {
+            try {
+                const reservoirPromises = reservoirs.map(reservoir =>
+                    fetch(`/api/reservoirs/${reservoir.id}/history?period=${period}&points=50`)
+                        .then(response => response.json())
+                );
+                
+                const reservoirDataArray = await Promise.all(reservoirPromises);
+                
+                if (currentCharts.reservoir && reservoirDataArray.length > 0) {
+                    currentCharts.reservoir.data.labels = reservoirDataArray[0].data.map(point => point.formattedTime);
+                    
+                    reservoirDataArray.forEach((reservoirData, index) => {
+                        if (currentCharts.reservoir.data.datasets[index]) {
+                            currentCharts.reservoir.data.datasets[index].data = reservoirData.data.map(point => point.value);
+                        }
+                    });
+                    
+                    currentCharts.reservoir.update('quiet');
+                }
+            } catch (error) {
+                console.error('Erreur mise à jour graphiques réservoirs:', error);
+            }
+        }
+
+        function showChartLoading(chartId) {
+            const canvas = document.getElementById(chartId);
+            const ctx = canvas.getContext('2d');
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#666';
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Chargement des données...', canvas.width / 2, canvas.height / 2);
+        }
+
+        function updateChartRealTime(type, data) {
+            if (type === 'sensor' && currentCharts.sensor && currentCharts.sensorId === data.id) {
+                const chart = currentCharts.sensor;
+                const newTime = new Date(data.timestamp).toLocaleTimeString('fr-FR', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+                
+                chart.data.labels.push(newTime);
+                chart.data.datasets[0].data.push(data.value);
+                
+                if (chart.data.labels.length > 100) {
+                    chart.data.labels.shift();
+                    chart.data.datasets[0].data.shift();
+                }
+                
+                chart.update('quiet');
+            }
+        }
+
+        // ============================================================================
+        // EXPORT EXCEL FONCTIONNEL (AMÉLIORÉ POUR CHIRPSTACK)
+        // ============================================================================
+
+        function exportSensorsToExcel() {
+            try {
+                const data = [];
+                const headers = ['Capteur', 'Type', 'Topic', 'Valeur Actuelle', 'Unité', 'Statut', 'JSON', 'Format', 'JSONPath', 'QoS', 'Dernière Mise à Jour'];
+                
+                data.push(headers);
+                
+                sensors.forEach(sensor => {
+                    const format = sensor.isJsonPayload ? (jsonFormats[sensor.jsonFormat]?.name || 'JSON') : 'Normal';
+                    data.push([
+                        sensor.name,
+                        sensor.type,
+                        sensor.topic,
+                        sensor.value || 0,
+                        sensor.unit || '',
+                        getStatusText(sensor.status),
+                        sensor.isJsonPayload ? 'Oui' : 'Non',
+                        format,
+                        sensor.jsonPath || '',
+                        sensor.mqttQos || 1,
+                        sensor.lastUpdate ? new Date(sensor.lastUpdate).toLocaleString() : 'Jamais'
+                    ]);
+                });
+                
+                downloadCSV(data, 'capteurs_chirpstack.csv');
+                showNotification('Export des capteurs réussi', 'success');
+            } catch (error) {
+                console.error('Erreur export:', error);
+                showNotification('Erreur lors de l\'export', 'error');
+            }
+        }
+
+        function exportReservoirsToExcel() {
+            try {
+                const data = [];
+                const headers = [
+                    'Réservoir', 'Type', 'Capacité (L)', 'Niveau (%)', 'Volume (L)', 
+                    'Mode', 'Statut Pompe', 'Topic Niveau', 'Format Niveau', 'QoS Niveau',
+                    'Topic Pompe', 'Format Pompe', 'QoS Pompe', 'Topic Mode', 'Format Mode', 'QoS Mode',
+                    'Dernière Mise à Jour'
+                ];
+                
+                data.push(headers);
+                
+                reservoirs.forEach(reservoir => {
+                    const levelFormat = reservoir.isJsonPayloadLevel ? (jsonFormats[reservoir.jsonFormatLevel]?.name || 'JSON') : 'Normal';
+                    const pumpFormat = reservoir.isJsonPayloadPump ? (jsonFormats[reservoir.jsonFormatPump]?.name || 'JSON') : 'Normal';
+                    const modeFormat = reservoir.isJsonPayloadMode ? (jsonFormats[reservoir.jsonFormatMode]?.name || 'JSON') : 'Normal';
+                    
+                    data.push([
+                        reservoir.name,
+                        reservoir.type,
+                        reservoir.capacity,
+                        (reservoir.currentLevel || 50).toFixed(1),
+                        Math.round((reservoir.currentLevel || 50) * reservoir.capacity / 100),
+                        reservoir.isAutoMode ? 'Automatique' : 'Manuel',
+                        reservoir.pumpStatus ? 'Activée' : 'Arrêtée',
+                        reservoir.topic,
+                        levelFormat,
+                        reservoir.mqttQosLevel || 1,
+                        reservoir.pumpTopic || '',
+                        pumpFormat,
+                        reservoir.mqttQosPump || 1,
+                        reservoir.modeTopic || '',
+                        modeFormat,
+                        reservoir.mqttQosMode || 1,
+                        reservoir.lastUpdate ? new Date(reservoir.lastUpdate).toLocaleString() : 'Jamais'
+                    ]);
+                });
+                
+                downloadCSV(data, 'reservoirs_chirpstack.csv');
+                showNotification('Export des réservoirs réussi', 'success');
+            } catch (error) {
+                console.error('Erreur export:', error);
+                showNotification('Erreur lors de l\'export', 'error');
+            }
+        }
+
+        function downloadCSV(data, filename) {
+            const csvContent = data.map(row => 
+                row.map(cell => `"${cell}"`).join(',')
+            ).join('\n');
+            
+            const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', filename);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            }
+        }
+
+        // ============================================================================
+        // TOUTES LES AUTRES FONCTIONS COMPLÈTES
+        // ============================================================================
+
+        function initializeRealTimeConnection() {
+            socket = io();
+
+            socket.on('connect', () => {
+                console.log('✅ Connexion temps réel établie');
+                document.getElementById('mqttStatus').classList.remove('offline');
+                document.getElementById('connectionStatus').textContent = 'ChirpStack Temps Réel';
+            });
+
+            socket.on('disconnect', () => {
+                console.log('❌ Connexion temps réel perdue');
+                document.getElementById('mqttStatus').classList.add('offline');
+                document.getElementById('connectionStatus').textContent = 'Hors Ligne';
+            });
+
+            socket.on('initial_data', (data) => {
+                console.log('📦 Données ChirpStack reçues');
+                sensors = data.sensors || [];
+                reservoirs = data.reservoirs || [];
+                sensorHistory = data.sensorHistory || {};
+                reservoirHistory = data.reservoirHistory || {};
+                config = { ...config, ...data.config };
+                renderSensors();
+                renderReservoirs();
+                loadSettings();
+            });
+
+            socket.on('sensor_realtime_update', (data) => {
+                updateSensorRealTime(data);
+                updateChartRealTime('sensor', data);
+            });
+
+            socket.on('reservoir_realtime_update', (data) => {
+                updateReservoirRealTime(data);
+                updateChartRealTime('reservoir', data);
+            });
+
+            socket.on('reservoir_pump_changed', (data) => {
+                const reservoir = reservoirs.find(r => r.id === data.id);
+                if (reservoir) {
+                    reservoir.pumpStatus = data.pumpStatus;
+                    updateReservoirDisplay(reservoir);
+                }
+            });
+
+            socket.on('reservoir_mode_changed', (data) => {
+                const reservoir = reservoirs.find(r => r.id === data.id);
+                if (reservoir) {
+                    reservoir.isAutoMode = data.isAutoMode;
+                    updateReservoirDisplay(reservoir);
+                    renderReservoirs(); // Re-render pour mettre à jour les badges
+                }
+            });
+
+            socket.on('alert', (alert) => {
+                showAlert(alert);
+            });
+
+            socket.on('mqtt_status', (status) => {
+                if (status.connected) {
+                    document.getElementById('mqttStatus').classList.remove('offline');
+                    document.getElementById('connectionStatus').textContent = 'ChirpStack + Temps Réel';
+                } else {
+                    document.getElementById('mqttStatus').classList.add('offline');
+                    document.getElementById('connectionStatus').textContent = 'MQTT Déconnecté';
+                }
+            });
+        }
+
+        async function deleteSensor(sensorId) {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer ce capteur ?')) return;
+
+            try {
+                const response = await fetch(`/api/sensors/${sensorId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    sensors = sensors.filter(s => s.id !== sensorId);
+                    delete sensorHistory[sensorId];
+                    renderSensors();
+                    showNotification('Capteur supprimé avec succès', 'success');
+                } else {
+                    throw new Error('Erreur serveur');
+                }
+            } catch (error) {
+                console.error('Erreur suppression capteur:', error);
+                showNotification('Erreur lors de la suppression', 'error');
+            }
+        }
+
+        async function deleteReservoir(reservoirId) {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer ce réservoir ?')) return;
+
+            try {
+                const response = await fetch(`/api/reservoirs/${reservoirId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    reservoirs = reservoirs.filter(r => r.id !== reservoirId);
+                    delete reservoirHistory[reservoirId];
+                    renderReservoirs();
+                    showNotification('Réservoir supprimé avec succès', 'success');
+                } else {
+                    throw new Error('Erreur serveur');
+                }
+            } catch (error) {
+                console.error('Erreur suppression réservoir:', error);
+                showNotification('Erreur lors de la suppression', 'error');
+            }
+        }
+
+        async function togglePump(reservoirId) {
+            const reservoir = reservoirs.find(r => r.id === reservoirId);
+            if (!reservoir) return;
+
+            if (!reservoir.pumpTopic) {
+                showNotification('⚠️ Aucun topic de pompe configuré', 'warning');
+                return;
+            }
+
+            try {
+                const action = reservoir.pumpStatus ? 'stop' : 'start';
+                const response = await fetch(`/api/reservoirs/${reservoirId}/pump`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action })
+                });
+
+                if (response.ok) {
+                    reservoir.pumpStatus = !reservoir.pumpStatus;
+                    updateReservoirDisplay(reservoir);
+                    
+                    const status = reservoir.pumpStatus ? 'démarrée' : 'arrêtée';
+                    showNotification(`Pompe ${reservoir.name} ${status}`, 'success');
+                } else {
+                    throw new Error('Erreur serveur');
+                }
+            } catch (error) {
+                console.error('Erreur contrôle pompe:', error);
+                showNotification('Erreur contrôle pompe', 'error');
+            }
+        }
+
+        async function fillReservoir(reservoirId) {
+            const reservoir = reservoirs.find(r => r.id === reservoirId);
+            if (!reservoir) return;
+
+            try {
+                const response = await fetch(`/api/reservoirs/${reservoirId}/fill`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (response.ok) {
+                    if (reservoir.fillTopic) {
+                        showNotification(`Commande de remplissage envoyée pour ${reservoir.name}`, 'success');
+                    } else {
+                        reservoir.currentLevel = 100;
+                        updateReservoirDisplay(reservoir);
+                        showNotification(`${reservoir.name} rempli à 100%`, 'success');
+                    }
+                } else {
+                    throw new Error('Erreur serveur');
+                }
+            } catch (error) {
+                console.error('Erreur remplissage:', error);
+                showNotification('Erreur remplissage', 'error');
+            }
+        }
+
+        function updateSensorRealTime(data) {
+            const sensor = sensors.find(s => s.id === data.id);
+            if (!sensor) return;
+
+            sensor.value = data.value;
+            sensor.status = data.status;
+            sensor.lastUpdate = new Date(data.timestamp);
+            if (data.receivedTimestamp) {
+                sensor.receivedTimestamp = new Date(data.receivedTimestamp);
+            }
+
+            updateSensorDisplay(sensor);
+        }
+
+        function updateReservoirRealTime(data) {
+            const reservoir = reservoirs.find(r => r.id === data.id);
+            if (!reservoir) return;
+
+            reservoir.currentLevel = data.level;
+            reservoir.lastUpdate = new Date(data.timestamp);
+            if (data.receivedTimestamp) {
+                reservoir.receivedTimestamp = new Date(data.receivedTimestamp);
+            }
+
+            updateReservoirDisplay(reservoir);
+        }
+
+        function updateSensorDisplay(sensor) {
+            const valueEl = document.getElementById(`sensor-value-${sensor.id}`);
+            const statusEl = document.getElementById(`sensor-status-${sensor.id}`);
+            const timeEl = document.getElementById(`sensor-time-${sensor.id}`);
+
+            if (valueEl) valueEl.textContent = sensor.value;
+            if (statusEl) {
+                statusEl.className = `status-badge status-${sensor.status}`;
+                statusEl.textContent = getStatusText(sensor.status);
+            }
+            if (timeEl) {
+                let timeText = formatTime(sensor.lastUpdate);
+                if (sensor.showReceivedTimestamp && sensor.receivedTimestamp) {
+                    timeText += `<br><small>Reçu: ${formatTime(sensor.receivedTimestamp)}</small>`;
+                }
+                timeEl.innerHTML = timeText;
+            }
+        }
+
+        function setupNavigation() {
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const section = this.getAttribute('data-section');
+                    switchSection(section);
+                });
+            });
+        }
+
+        function switchSection(section) {
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            document.querySelector(`[data-section="${section}"]`).classList.add('active');
+
+            document.querySelectorAll('.section').forEach(sec => {
+                sec.classList.add('hidden');
+            });
+            document.getElementById(`${section}-section`).classList.remove('hidden');
+
+            currentSection = section;
+        }
+
+        async function loadFromServerOrLocal() {
+            try {
+                const response = await fetch('/api/data');
+                if (response.ok) {
+                    const data = await response.json();
+                    sensors = data.sensors || [];
+                    reservoirs = data.reservoirs || [];
+                    sensorHistory = data.sensorHistory || {};
+                    reservoirHistory = data.reservoirHistory || {};
+                    config = { ...config, ...data.config };
+                    
+                    console.log('📂 Données ChirpStack chargées depuis le serveur');
+                } else {
+                    throw new Error('Serveur indisponible');
+                }
+            } catch (error) {
+                console.log('📂 Chargement depuis localStorage');
+                loadFromStorage();
+            }
+        }
+
+        function loadFromStorage() {
+            const savedData = localStorage.getItem('agricultureDashboard');
+            if (savedData) {
+                try {
+                    const data = JSON.parse(savedData);
+                    sensors = data.sensors || [];
+                    reservoirs = data.reservoirs || [];
+                    sensorHistory = data.sensorHistory || {};
+                    reservoirHistory = data.reservoirHistory || {};
+                    config = { ...config, ...data.config };
+                    
+                    sensors.forEach(sensor => {
+                        if (typeof sensor.lastUpdate === 'string') {
+                            sensor.lastUpdate = new Date(sensor.lastUpdate);
+                        }
+                    });
+                    
+                    reservoirs.forEach(reservoir => {
+                        if (typeof reservoir.lastUpdate === 'string') {
+                            reservoir.lastUpdate = new Date(reservoir.lastUpdate);
+                        }
+                    });
+                    
+                    console.log('Données chargées depuis localStorage:', data.version || '1.0');
+                } catch (e) {
+                    console.error('Erreur lors du chargement des données:', e);
+                    showNotification('Erreur lors du chargement des données', 'error');
+                }
+            }
+        }
+
+        async function saveSettings() {
+            try {
+                config.mqttServer = document.getElementById('mqttServer').value;
+                config.baseTopic = document.getElementById('mqttBaseTopic').value;
+                config.updateInterval = parseInt(document.getElementById('updateInterval').value);
+                
+                const response = await fetch('/api/data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sensors: sensors,
+                        reservoirs: reservoirs,
+                        sensorHistory: sensorHistory,
+                        reservoirHistory: reservoirHistory,
+                        config: config
+                    })
+                });
+
+                if (response.ok) {
+                    showNotification('Configuration sauvegardée avec succès', 'success');
+                } else {
+                    throw new Error('Erreur serveur');
+                }
+            } catch (error) {
+                console.error('Erreur sauvegarde paramètres:', error);
+                showNotification('Erreur sauvegarde des paramètres', 'error');
+            }
+        }
+
+        function loadSettings() {
+            document.getElementById('mqttServer').value = config.mqttServer || '';
+            document.getElementById('mqttBaseTopic').value = config.baseTopic || '';
+            document.getElementById('updateInterval').value = config.updateInterval || 5000;
+        }
+
+        function getStatusText(status) {
+            const statusTexts = {
+                online: 'En ligne',
+                offline: 'Hors ligne',
+                warning: 'Alerte'
+            };
+            return statusTexts[status] || status;
+        }
+
+        function formatTime(date) {
+            if (!date) return 'Jamais';
+            const now = new Date();
+            const diff = now - new Date(date);
+            
+            if (diff < 10000) return 'À l\'instant';
+            if (diff < 60000) return `${Math.floor(diff / 1000)}s`;
+            if (diff < 3600000) return `${Math.floor(diff / 60000)}min`;
+            if (diff < 86400000) return `${Math.floor(diff / 3600000)}h`;
+            return `${Math.floor(diff / 86400000)}j`;
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 4000);
+        }
+
+        function showAlert(alert) {
+            const messages = {
+                low_threshold: `⚠️ ${alert.sensor}: valeur trop basse (${alert.value})`,
+                high_threshold: `⚠️ ${alert.sensor}: valeur trop élevée (${alert.value})`,
+                low_level: `⚠️ ${alert.reservoir}: niveau bas (${alert.level.toFixed(1)}%)`
+            };
+            
+            showNotification(messages[alert.type] || 'Alerte système', 'warning');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+            
+            if (modalId === 'addSensorModal') {
+                document.getElementById('jsonOptions').classList.remove('show');
+            }
+            if (modalId === 'editSensorModal') {
+                document.getElementById('editJsonOptions').classList.remove('show');
+            }
+            
+            if (modalId === 'addReservoirModal') {
+                ['Level', 'Pump', 'Fill', 'Mode'].forEach(type => {
+                    const jsonOptions = document.getElementById('jsonOptions' + type);
+                    if (jsonOptions) {
+                        jsonOptions.classList.remove('show');
+                    }
+                });
+            }
+            if (modalId === 'editReservoirModal') {
+                ['Level', 'Pump', 'Fill', 'Mode'].forEach(type => {
+                    const jsonOptions = document.getElementById('editJsonOptions' + type);
+                    if (jsonOptions) {
+                        jsonOptions.classList.remove('show');
+                    }
+                });
+            }
+            
+            if (modalId === 'sensorChartModal' && chartUpdateIntervals.sensor) {
+                clearInterval(chartUpdateIntervals.sensor);
+                delete chartUpdateIntervals.sensor;
+            }
+            
+            if (modalId === 'overviewChartModal' && chartUpdateIntervals.overview) {
+                clearInterval(chartUpdateIntervals.overview);
+                delete chartUpdateIntervals.overview;
+            }
+
+            if (modalId === 'reservoirChartModal' && chartUpdateIntervals.reservoir) {
+                clearInterval(chartUpdateIntervals.reservoir);
+                delete chartUpdateIntervals.reservoir;
+            }
+        }
+
+        function openAddSensorModal() {
+            document.getElementById('addSensorModal').style.display = 'block';
+        }
+
+        function openAddReservoirModal() {
+            document.getElementById('addReservoirModal').style.display = 'block';
+        }
+
+        // Fermeture des modales en cliquant à l'extérieur
+        window.addEventListener('click', function(event) {
+            if (event.target.classList.contains('modal')) {
+                const modalId = event.target.id;
+                closeModal(modalId);
+            }
+        });
+
+        // Raccourcis clavier
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                saveSettings();
+                showNotification('Configuration sauvegardée', 'success');
+            }
+            
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal').forEach(modal => {
+                    if (modal.style.display === 'block') {
+                        closeModal(modal.id);
+                    }
+                });
+            }
+        });
+
+        // Détecter la connexion réseau
+        window.addEventListener('online', function() {
+            showNotification('Connexion réseau rétablie', 'success');
+            document.getElementById('mqttStatus').classList.remove('offline');
+        });
+
+        window.addEventListener('offline', function() {
+            showNotification('Connexion réseau perdue', 'warning');
+            document.getElementById('mqttStatus').classList.add('offline');
+        });
+
+        console.log('🌾 Station Agricole v2.3 - Interface ChirpStack Complète 100% Fonctionnelle');
+    </script>
+</body>
+</html>
