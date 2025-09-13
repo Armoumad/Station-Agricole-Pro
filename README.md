@@ -12,10 +12,8 @@ A real‑time server and web dashboard to supervise an agricultural station:
 
 ---
 
-## 🖼️ Visual Overview (Examples)
+## 🖼️ Visual Overview
 
-> Replace / adjust captions to match your real hardware.  
-> You can move images into `docs/images/` later if you reorganize.
 
 ![Hardware assembly 1](./1752365116630.jpeg)  
 ![Hardware assembly 2](./1752365116780.jpeg)  
@@ -62,42 +60,10 @@ A real‑time server and web dashboard to supervise an agricultural station:
 
 ---
 
-## 🧱 Architecture Diagram (Conceptual)
+## 🗺️ Architecture Diagram (Conceptual)
 
-```
-┌─────────────────────────────────────────────┐
-│               Frontend (SPA)               │
-│  - index.html                              │
-│  - Socket.IO client                        │
-│  - Chart.js charts                         │
-└──────────────▲─────────────────────────────┘
-               │ WebSocket (real-time events)
-               │ REST (initial state/history)
-┌──────────────┴─────────────────────────────┐
-│              Backend (Node.js)             │
-│  server.js:                                │
-│   - Express API (sensors/reservoirs)       │
-│   - MQTT client (ChirpStack + normal)      │
-│   - JSONPath extraction logic              │
-│   - In-memory + JSON persistence           │
-│   - Threshold + alert emission             │
-└──────────────▲─────────────────────────────┘
-               │ MQTT (QoS n)
-               ▼
-        ┌───────────────────┐
-        │   MQTT Broker      │
-        │  (e.g. Mosquitto)  │
-        └───────────────────┘
-               │
-        ┌──────────────┐
-        │  ChirpStack   │
-        └──────────────┘
-               │
-        ┌──────────────┐
-        │  Devices /    │
-        │  Sensors      │
-        └──────────────┘
-```
+![Architecture Diagram](./archetecteur.png)
+
 
 ---
 
